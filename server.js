@@ -40,8 +40,9 @@ app.use(cors({
 
 app.get("/", async (req, res) => {
   console.log((req.url.split("/?url="))[1])
-  const response = await fetch((req.url.split("/?url="))[1])
-  res.json(await response.json())
+  // const response = await fetch((req.url.split("/?url="))[1])
+  // res.json(await response.json())
+  res.json([{"bruh": "bruh"}])
 })
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`))

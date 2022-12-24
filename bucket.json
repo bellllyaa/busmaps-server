@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://busmaps.netlify.app"],
+    "responseHeader": ["Content-Type"],
+    "method": ["GET", "POST"],
+    "maxAgeSeconds": 3600
+  }
+]
