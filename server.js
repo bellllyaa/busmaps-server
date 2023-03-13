@@ -359,7 +359,7 @@ async function loadData() {
     // Trains
 
     // SKM Trójmiasto
-    /*await importGtfs(configSKMTrojmiasto);
+    await importGtfs(configSKMTrojmiasto);
     const dbSKMTrojmiasto = openDb(configSKMTrojmiasto);
     skmTrojmiastoLoad.raw.stops = getStops({}, [], [], { db: dbSKMTrojmiasto });
     skmTrojmiastoLoad.raw.routes = getRoutes({}, [], [], { db: dbSKMTrojmiasto });
@@ -369,7 +369,7 @@ async function loadData() {
     closeDb(dbSKMTrojmiasto)
 
     // PolRegio
-    await importGtfs(configPolRegio);
+    /*await importGtfs(configPolRegio);
     const dbPolRegio = openDb(configPolRegio);
     polRegioLoad.raw.stops = getStops({}, [], [], { db: dbPolRegio });
     polRegioLoad.raw.routes = getRoutes({}, [], [], { db: dbPolRegio });
@@ -528,8 +528,9 @@ async function loadData() {
 
     // Trains
 
+    let trainStops = [];
+
     // SKM Trojmiasto
-    /*let trainStops = [];
     for (const stop of skmTrojmiastoLoad.raw.stops) {
       trainStops.push({
         stopName: stop.stop_name
@@ -550,7 +551,7 @@ async function loadData() {
     }
 
     // PolRegio
-    for (const stop of polRegioLoad.raw.stops) {
+    /*for (const stop of polRegioLoad.raw.stops) {
       const comparedStop = trainStops.find(trainStop => trainStop.stopName === stop.stop_name)
       if (comparedStop !== undefined) {
         trainStops[trainStops.indexOf(comparedStop)].providers.push({
@@ -619,7 +620,7 @@ async function loadData() {
         stops.push(zkmStop);
       }
     }
-    // stops.push(...trainStops)
+    stops.push(...trainStops)
     console.log("Stops have been loaded")
     // sendTelegramMessage("Stops have been loaded")
     // saveObjToFile(stops, "jsons/Output/stops.json");
@@ -786,7 +787,7 @@ async function loadData() {
     // SKM Trójmiasto
     
     // ServiceIds
-    /*for (const element of skmTrojmiastoLoad.raw.calendarDates) {
+    for (const element of skmTrojmiastoLoad.raw.calendarDates) {
       for (const date of dates) {
         if (element.date.toString() === date.format("YYYYMMDD")) {
           skmTrojmiastoLoad.serviceIds[date.format("YYYY-MM-DD")].push(Number(element.service_id));
@@ -865,7 +866,7 @@ async function loadData() {
     // PolRegio
     
     // ServiceIds
-    for (const element of polRegioLoad.raw.calendarDates) {
+    /*for (const element of polRegioLoad.raw.calendarDates) {
       for (const date of dates) {
         if (element.date.toString() === date.format("YYYYMMDD")) {
           polRegioLoad.serviceIds[date.format("YYYY-MM-DD")].push(Number(element.service_id));
@@ -1312,14 +1313,14 @@ app.post("/get-departures", async (req, res) => {
   }
 
   // Loading realtime data
-  if (false && currentStop.stopType === "train") {
+  if (currentStop.stopType === "train") {
 
     for (const provider of currentStop.providers) {
       if (provider.stopProvider === "SKM Trójmiasto") {
         currentStop.skmTrojmiasto = {
           stopId: provider.stopId,
         };
-      } else if (provider.stopProvider === "PolRegio") {
+      } /*else if (provider.stopProvider === "PolRegio") {
         currentStop.polRegio = {
           stopId: provider.stopId,
         };
@@ -1340,13 +1341,13 @@ app.post("/get-departures", async (req, res) => {
         departuresAll.push(...skmTrojmiasto.departures[date.format("YYYY-MM-DD")][currentStop.skmTrojmiasto.stopId]);
       }
 
-      if (
+      /*if (
         currentStop.polRegio &&
         polRegio.departures[date.format("YYYY-MM-DD")] &&
         polRegio.departures[date.format("YYYY-MM-DD")][currentStop.polRegio.stopId]
       ) {
         departuresAll.push(...polRegio.departures[date.format("YYYY-MM-DD")][currentStop.polRegio.stopId]);
-      }
+      }*/
 
       /*if (
         currentStop.pkpIntercity &&
