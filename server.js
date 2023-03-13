@@ -270,37 +270,37 @@ async function loadData() {
     // Trojmiasto
 
     // Stops
-    /*ztmGdanskLoad.raw.stops = await (
+    ztmGdanskLoad.raw.stops = await (
       await fetch(
         "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/4c4025f0-01bf-41f7-a39f-d156d201b82b/download/stops.json"
       )
-    ).json();*/
+    ).json();
     zkmGdyniaLoad.raw.stops = await (
       await fetch("http://api.zdiz.gdynia.pl/pt/stops")
     ).json();
 
     // Routes
-    /*ztmGdanskLoad.raw.routes = await (
+    ztmGdanskLoad.raw.routes = await (
       await fetch(
         "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/22313c56-5acf-41c7-a5fd-dc5dc72b3851/download/routes.json"
       )
-    ).json();*/
+    ).json();
     zkmGdyniaLoad.raw.routes = await (
       await fetch("http://api.zdiz.gdynia.pl/pt/routes")
     ).json();
 
     // Trips
-    /*ztmGdanskLoad.raw.trips = await (
+    ztmGdanskLoad.raw.trips = await (
       await fetch(
         "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/b15bb11c-7e06-4685-964e-3db7775f912f/download/trips.json"
       )
-    ).json();*/
+    ).json();
     zkmGdyniaLoad.raw.trips = await (
       await fetch("http://api.zdiz.gdynia.pl/pt/trips")
     ).json();
 
     // Other
-    /*ztmGdanskLoad.raw.stopsInTrip = await (
+    ztmGdanskLoad.raw.stopsInTrip = await (
       await fetch(
         "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/3115d29d-b763-4af5-93f6-763b835967d6/download/stopsintrip.json"
       )
@@ -309,7 +309,7 @@ async function loadData() {
       await fetch(
         "https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/a023ceb0-8085-45f6-8261-02e6fcba7971/download/stoptimes.json"
       )
-    ).json();*/
+    ).json();
     zkmGdyniaLoad.raw.stopTimes = await (
       await fetch("http://api.zdiz.gdynia.pl/pt/stop_times")
     ).json();
@@ -318,7 +318,7 @@ async function loadData() {
     ).json();
 
     // Stop times of ZTM Gdansk
-    /*for (const [key, value] of Object.entries(ztmGdanskLoad.raw.stopTimesLinks)) {
+    for (const [key, value] of Object.entries(ztmGdanskLoad.raw.stopTimesLinks)) {
       // console.log(key);
 
       for (const date of dates) {
@@ -333,7 +333,7 @@ async function loadData() {
           );
         }
       }
-    }*/
+    }
 
     // Saving data to jsons
     /*saveObjToFile(ztmGdanskLoad.raw.stops, "jsons/ZTMGdansk/stopsFull.json");
@@ -424,12 +424,12 @@ async function loadData() {
     console.log("•");
     console.log("Data loaded successfully!", dateNow.format("YYYY-MM-DD HH:mm:ss"));
     console.log("•");
-    // sendTelegramMessage("Data loaded successfully!")
+    sendTelegramMessage("Data loaded successfully!")
 
     // Working with loaded data
 
     // ZTM Gdańsk
-    /*function ztmGdanskGetStopType(stop) {
+    function ztmGdanskGetStopType(stop) {
       const stopId = stop.stopId;
 
       // name: Władysława IV 01, id: 2169
@@ -494,7 +494,7 @@ async function loadData() {
           }
         }
       }
-    }*/
+    }
 
     // ZKM Gdynia
     for (const stop of zkmGdyniaLoad.raw.stops) {
@@ -634,7 +634,7 @@ async function loadData() {
 
     // ZTM Gdańsk
 
-    /*for (const stop of ztmGdanskLoad.stops) {
+    for (const stop of ztmGdanskLoad.stops) {
       for (const date of dates) {
         ztmGdansk.departures[date.format("YYYY-MM-DD")][
           stop.providers[0].stopId
@@ -694,7 +694,7 @@ async function loadData() {
       }
     }
 
-    console.log("ZTM Gdańsk departures have been loaded")*/
+    console.log("ZTM Gdańsk departures have been loaded")
     // sendTelegramMessage("ZTM Gdańsk departures have been loaded")
     // saveObjToFile(ztmGdansk.departures, "jsons/Output/ztmGdanskDepartures.json");
     // saveObjToFile(brokenBruh, "jsons/Output/ztmGdanskDeparturesBroken.json");
@@ -1408,7 +1408,7 @@ app.post("/get-departures", async (req, res) => {
     console.log(currentStop);
 
     // Adding realtime data to departures
-    /*if (ztmGdanskDeparturesRealtime) {
+    if (ztmGdanskDeparturesRealtime) {
       for (const element of ztmGdanskDeparturesRealtime.departures) {
         if (element.status === "REALTIME") {
           const theoreticalTime = moment(element.theoreticalTime).tz("Europe/Warsaw");
@@ -1445,7 +1445,7 @@ app.post("/get-departures", async (req, res) => {
             `${estimatedTime.format("YYYY-MM-DD")}T${estimatedTime.format("HH:mm:ss")}${estimatedTime.format("Z")}`;
         }
       }
-    }*/
+    }
 
     if (zkmGdyniaDeparturesRealtime) {
       for (const element of zkmGdyniaDeparturesRealtime.departures) {
@@ -1488,13 +1488,13 @@ app.post("/get-departures", async (req, res) => {
     // Combining data from all providers
     for (const date of dates) {
 
-      /*if (
+      if (
         currentStop.ztmGdansk &&
         ztmGdansk.departures[date.format("YYYY-MM-DD")] &&
         ztmGdansk.departures[date.format("YYYY-MM-DD")][currentStop.ztmGdansk.stopId]
       ) {
         departuresAll.push(...ztmGdansk.departures[date.format("YYYY-MM-DD")][currentStop.ztmGdansk.stopId]);
-      }*/
+      }
 
       if (
         currentStop.zkmGdynia &&
