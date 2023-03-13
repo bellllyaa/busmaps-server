@@ -5,7 +5,8 @@ const CHAT_ID = "758319926";
 
 const LOCAL_URL = "https://8080-cs-794102293669-default.cs-europe-west4-bhnf.cloudshell.dev";
 const GOOGLE_PROXY_URL = "https://bypass-cors-server.ew.r.appspot.com";
-const PROXY_URL = GOOGLE_PROXY_URL;
+const AZURE_PROXY_URL = "https://busmaps-server.azurewebsites.net";
+const PROXY_URL = AZURE_PROXY_URL;
 
 import express from "express";
 const app = express();
