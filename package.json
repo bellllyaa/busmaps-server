@@ -12,9 +12,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "better-sqlite3": "^8.2.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "gtfs": "^4.0.3",
+    "gtfs": "^4.1.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.40",
     "node-fetch": "^2.6.7",
