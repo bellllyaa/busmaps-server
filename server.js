@@ -423,6 +423,7 @@ async function loadData() {
     console.log("•");
     console.log("Data loaded successfully!", dateNow.format("YYYY-MM-DD HH:mm:ss"));
     console.log("•");
+    sendTelegramMessage("Data loaded successfully!")
 
     // Working with loaded data
 
@@ -619,6 +620,7 @@ async function loadData() {
     }
     stops.push(...trainStops)
     console.log("Stops have been loaded")
+    sendTelegramMessage("Stops have been loaded")
     // saveObjToFile(stops, "jsons/Output/stops.json");
 
     // for (const stop of stops) {
@@ -692,6 +694,7 @@ async function loadData() {
     }
 
     console.log("ZTM Gdańsk departures have been loaded")
+    sendTelegramMessage("ZTM Gdańsk departures have been loaded")
     // saveObjToFile(ztmGdansk.departures, "jsons/Output/ztmGdanskDepartures.json");
     // saveObjToFile(brokenBruh, "jsons/Output/ztmGdanskDeparturesBroken.json");
 
@@ -774,6 +777,7 @@ async function loadData() {
     }
 
     console.log("ZKM Gdynia departures have been loaded")
+    sendTelegramMessage("ZKM Gdynia departures have been loaded")
     // saveObjToFile(zkmGdynia.departures, "jsons/Output/zkmGdyniaDepartures.json");
 
     // Trains
@@ -855,6 +859,7 @@ async function loadData() {
 
     // saveObjToFile(skmTrojmiasto.departures, "jsons/Output/skmTrojmiastoDepartures.json");
     console.log("SKM Trojmiasto departures have been loaded")
+    sendTelegramMessage("SKM Trojmiasto departures have been loaded")
 
     // PolRegio
     
@@ -933,6 +938,7 @@ async function loadData() {
 
     // saveObjToFile(polRegio.departures, "jsons/Output/polRegioDepartures.json");
     console.log("PolRegio departures have been loaded")
+    sendTelegramMessage("PolRegio departures have been loaded")
 
     // PKP Intercity
       
