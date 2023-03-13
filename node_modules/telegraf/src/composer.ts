@@ -6,7 +6,7 @@ import { Middleware, MiddlewareFn, MiddlewareObj } from './middleware'
 import Context, { FilteredContext, NarrowedContext } from './context'
 import { MaybeArray, NonemptyReadonlyArray, MaybePromise, Guard } from './util'
 import { type CallbackQuery } from './core/types/typegram'
-import { callbackQuery } from './filters'
+import { message, callbackQuery } from './filters'
 
 export type Triggers<C> = MaybeArray<
   string | RegExp | ((value: string, ctx: C) => RegExpExecArray | null)
@@ -109,7 +109,7 @@ export class Composer<C extends Context> implements MiddlewareObj<C> {
    * Registers middleware for handling specified commands.
    */
   command(
-    command: MaybeArray<string>,
+    command: Triggers<C>,
     ...fns: NonemptyReadonlyArray<
       Middleware<NarrowedContext<C, tt.MountMap['text']>>
     >
@@ -451,7 +451,9 @@ export class Composer<C extends Context> implements MiddlewareObj<C> {
     const predicate = (update: tg.Update): update is tg.Update => {
       for (const filter of filters) {
         if (
-          typeof filter === 'function'
+          // TODO: this should change to === 'function' once TS bug is fixed
+          // https://github.com/microsoft/TypeScript/pull/51502
+          typeof filter !== 'string'
             ? // filter is a type guard
               filter(update)
             : // check if filter is the update type
@@ -663,33 +665,31 @@ export class Composer<C extends Context> implements MiddlewareObj<C> {
    * Generates middleware for handling specified commands.
    */
   static command<C extends Context>(
-    command: MaybeArray<string>,
+    command: Triggers<C>,
     ...fns: NonemptyReadonlyArray<
       Middleware<NarrowedContext<C, tt.MountMap['text']>>
     >
   ): MiddlewareFn<C> {
-    if (fns.length === 0) {
+    if (fns.length === 0)
       // @ts-expect-error command is really the middleware
       return Composer.entity('bot_command', command)
-    }
-    const commands = normalizeTextArguments(command, '/')
-    return Composer.on<C, 'text'>(
-      'text',
-      Composer.lazy<NarrowedContext<C, tt.MountMap['text']>>((ctx) => {
-        const groupCommands =
-          ctx.me && ctx.chat?.type.endsWith('group')
-            ? commands.map((command) => `${command}@${ctx.me}`)
-            : []
-        return Composer.entity<NarrowedContext<C, tt.MountMap['text']>>(
-          ({ offset, type }, value) =>
-            offset === 0 &&
-            type === 'bot_command' &&
-            (commands.includes(value) || groupCommands.includes(value)),
-          // @ts-expect-error see explanation above
-          ...fns
-        )
-      })
-    )
+
+    const triggers = normalizeTriggers<C>(command)
+    const filter = message('text')
+
+    return Composer.on<C, typeof filter>(filter, (ctx, next) => {
+      const first = ctx.message.entities?.[0]
+      if (first?.type !== 'bot_command') return next()
+      if (first.offset > 0) return next()
+      const [cmdPart, to] = ctx.message.text.slice(0, first.length).split('@')
+      if (!cmdPart) return next()
+      // always check for bot's own username case-insensitively
+      if (to && to.toLowerCase() !== ctx.me.toLowerCase()) return next()
+      const cmd = cmdPart.slice(1)
+      for (const trigger of triggers)
+        if (trigger(cmd, ctx as C)) return Composer.compose(fns)(ctx, next)
+      return next()
+    })
   }
 
   /**
@@ -860,22 +860,18 @@ function escapeRegExp(s: string) {
 function normalizeTriggers<C extends Context>(
   triggers: Triggers<C>
 ): Array<(value: string, ctx: C) => RegExpExecArray | null> {
-  if (!Array.isArray(triggers)) {
-    triggers = [triggers]
-  }
+  if (!Array.isArray(triggers)) triggers = [triggers]
+
   return triggers.map((trigger) => {
-    if (!trigger) {
-      throw new Error('Invalid trigger')
-    }
-    if (typeof trigger === 'function') {
-      return trigger
-    }
-    if (trigger instanceof RegExp) {
+    if (!trigger) throw new Error('Invalid trigger')
+    if (typeof trigger === 'function') return trigger
+
+    if (trigger instanceof RegExp)
       return (value = '') => {
         trigger.lastIndex = 0
         return trigger.exec(value)
       }
-    }
+
     const regex = new RegExp(`^${escapeRegExp(trigger)}$`)
     return (value: string) => regex.exec(value)
   })
