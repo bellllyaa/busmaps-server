@@ -359,7 +359,7 @@ async function loadData() {
     // Trains
 
     // SKM Trójmiasto
-    await importGtfs(configSKMTrojmiasto);
+    /*await importGtfs(configSKMTrojmiasto);
     const dbSKMTrojmiasto = openDb(configSKMTrojmiasto);
     skmTrojmiastoLoad.raw.stops = getStops({}, [], [], { db: dbSKMTrojmiasto });
     skmTrojmiastoLoad.raw.routes = getRoutes({}, [], [], { db: dbSKMTrojmiasto });
@@ -376,7 +376,7 @@ async function loadData() {
     polRegioLoad.raw.trips = getTrips({}, [], [], { db: dbPolRegio });
     polRegioLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbPolRegio });
     polRegioLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbPolRegio });
-    closeDb(dbPolRegio)
+    closeDb(dbPolRegio)*/
 
     // PKP Intercity
     /*await importGtfs(configPKPIntercity);
@@ -529,7 +529,7 @@ async function loadData() {
     // Trains
 
     // SKM Trojmiasto
-    let trainStops = [];
+    /*let trainStops = [];
     for (const stop of skmTrojmiastoLoad.raw.stops) {
       trainStops.push({
         stopName: stop.stop_name
@@ -575,7 +575,7 @@ async function loadData() {
           ]
         })
       }
-    }
+    }*/
 
     // PKP Intercity
     /*for (const stop of pkpIntercityLoad.raw.stops) {
@@ -786,7 +786,7 @@ async function loadData() {
     // SKM Trójmiasto
     
     // ServiceIds
-    for (const element of skmTrojmiastoLoad.raw.calendarDates) {
+    /*for (const element of skmTrojmiastoLoad.raw.calendarDates) {
       for (const date of dates) {
         if (element.date.toString() === date.format("YYYYMMDD")) {
           skmTrojmiastoLoad.serviceIds[date.format("YYYY-MM-DD")].push(Number(element.service_id));
@@ -938,7 +938,7 @@ async function loadData() {
     }
 
     // saveObjToFile(polRegio.departures, "jsons/Output/polRegioDepartures.json");
-    console.log("PolRegio departures have been loaded")
+    console.log("PolRegio departures have been loaded")*/
     // sendTelegramMessage("PolRegio departures have been loaded")
 
     // PKP Intercity
