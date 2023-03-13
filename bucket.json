@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["https://busmaps.netlify.app"],
+    "origin": ["https://busmaps.pl"],
     "responseHeader": ["Content-Type"],
     "method": ["GET", "POST"],
     "maxAgeSeconds": 3600
