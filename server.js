@@ -1584,7 +1584,7 @@ app.get("/dev/bruh", async (req, res) => {
 });
 
 app.get("/dev/last-data-load", async (req, res) => {
-  res.json(lastDataLoad);
+  res.json(lastDataLoad.format("YYYY-MM-DDTHH:mm:ssZ"));
 })
 
 app.get("/dev/history/stops", async (req, res) => {
