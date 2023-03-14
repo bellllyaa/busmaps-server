@@ -239,7 +239,11 @@ async function loadData() {
     };
     const polRegioLoad = {
       raw: {
-        stops: []
+        stops: [],
+        calendarDates: [],
+        stopTimes: [],
+        trips: [],
+        routes: []
       },
       serviceIds: {}
     };
@@ -376,21 +380,25 @@ async function loadData() {
       skmTrojmiastoLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbSKMTrojmiasto });
       skmTrojmiastoLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbSKMTrojmiasto });
       closeDb(dbSKMTrojmiasto)
-      sendTelegramMessage("SKM Trójmiasto departures have been loaded successfully")
     } catch (err) {
       console.log(err.message)
       sendTelegramMessage(err.message)
     }
 
     // PolRegio
-    /*await importGtfs(configPolRegio);
-    const dbPolRegio = openDb(configPolRegio);
-    polRegioLoad.raw.stops = getStops({}, [], [], { db: dbPolRegio });
-    polRegioLoad.raw.routes = getRoutes({}, [], [], { db: dbPolRegio });
-    polRegioLoad.raw.trips = getTrips({}, [], [], { db: dbPolRegio });
-    polRegioLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbPolRegio });
-    polRegioLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbPolRegio });
-    closeDb(dbPolRegio)*/
+    try {
+      await importGtfs(configPolRegio);
+      const dbPolRegio = openDb(configPolRegio);
+      polRegioLoad.raw.stops = getStops({}, [], [], { db: dbPolRegio });
+      polRegioLoad.raw.routes = getRoutes({}, [], [], { db: dbPolRegio });
+      polRegioLoad.raw.trips = getTrips({}, [], [], { db: dbPolRegio });
+      polRegioLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbPolRegio });
+      polRegioLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbPolRegio });
+      closeDb(dbPolRegio)
+    } catch (err) {
+      console.log(err.message)
+      sendTelegramMessage(err.message)
+    }
 
     // PKP Intercity
     /*await importGtfs(configPKPIntercity);
@@ -565,7 +573,7 @@ async function loadData() {
     }
 
     // PolRegio
-    /*for (const stop of polRegioLoad.raw.stops) {
+    for (const stop of polRegioLoad.raw.stops) {
       const comparedStop = trainStops.find(trainStop => trainStop.stopName === stop.stop_name)
       if (comparedStop !== undefined) {
         trainStops[trainStops.indexOf(comparedStop)].providers.push({
@@ -590,7 +598,7 @@ async function loadData() {
           ]
         })
       }
-    }*/
+    }
 
     // PKP Intercity
     /*for (const stop of pkpIntercityLoad.raw.stops) {
@@ -880,7 +888,7 @@ async function loadData() {
     // PolRegio
     
     // ServiceIds
-    /*for (const element of polRegioLoad.raw.calendarDates) {
+    for (const element of polRegioLoad.raw.calendarDates) {
       for (const date of dates) {
         if (element.date.toString() === date.format("YYYYMMDD")) {
           polRegioLoad.serviceIds[date.format("YYYY-MM-DD")].push(Number(element.service_id));
@@ -953,7 +961,7 @@ async function loadData() {
     }
 
     // saveObjToFile(polRegio.departures, "jsons/Output/polRegioDepartures.json");
-    console.log("PolRegio departures have been loaded")*/
+    console.log("PolRegio departures have been loaded")
     // sendTelegramMessage("PolRegio departures have been loaded")
 
     // PKP Intercity
@@ -1054,7 +1062,7 @@ async function loadData() {
 }
 
 loadData();
-// const interval = setInterval(() => loadData(), 60000);
+const interval = setInterval(() => loadData(), 120000);
 
 async function testLoadData() {
 
@@ -1334,7 +1342,7 @@ app.post("/get-departures", async (req, res) => {
         currentStop.skmTrojmiasto = {
           stopId: provider.stopId,
         };
-      } /*else if (provider.stopProvider === "PolRegio") {
+      } else if (provider.stopProvider === "PolRegio") {
         currentStop.polRegio = {
           stopId: provider.stopId,
         };
@@ -1355,13 +1363,13 @@ app.post("/get-departures", async (req, res) => {
         departuresAll.push(...skmTrojmiasto.departures[date.format("YYYY-MM-DD")][currentStop.skmTrojmiasto.stopId]);
       }
 
-      /*if (
+      if (
         currentStop.polRegio &&
         polRegio.departures[date.format("YYYY-MM-DD")] &&
         polRegio.departures[date.format("YYYY-MM-DD")][currentStop.polRegio.stopId]
       ) {
         departuresAll.push(...polRegio.departures[date.format("YYYY-MM-DD")][currentStop.polRegio.stopId]);
-      }*/
+      }
 
       /*if (
         currentStop.pkpIntercity &&
