@@ -1053,9 +1053,9 @@ async function loadData() {
     sendTelegramMessage("Data processed successfully!")
 
   } else {
-    // const keep_from_sleep = await fetch(
-    //   PROXY_URL + "/dev/bruh"
-    // );
+    const keep_from_sleep = await fetch(
+      PROXY_URL + "/dev/bruh"
+    );
     // console.log(await keep_from_sleep.json());
     // console.log("Nah");
   }
@@ -1589,7 +1589,7 @@ app.get("/dev/last-data-load", async (req, res) => {
 
 app.get("/dev/history/stops", async (req, res) => {
   // res.json(JSON.stringify(history.stops, null, 2))
-  res.json(history.stops)
+  res.json(history.stops);
 })
 
 app.get("/get-telebot-token", async (req, res) => {
