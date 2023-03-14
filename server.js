@@ -1053,14 +1053,7 @@ async function loadData() {
   }
 }
 
-try {
-  loadData()
-} catch (err) {
-  sendTelegramMessage("Error while loading data")
-  sendTelegramMessage(err)
-}
-
-// loadData();
+loadData();
 // const interval = setInterval(() => loadData(), 60000);
 
 async function testLoadData() {
