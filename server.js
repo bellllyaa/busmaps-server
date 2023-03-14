@@ -228,11 +228,19 @@ async function loadData() {
       serviceIds: {},
     };
     const skmTrojmiastoLoad = {
-      raw: {},
-      serviceIds: {}
+      raw: {
+        stops: [],
+        calendarDates: [],
+        stopTimes: [],
+        trips: [],
+        routes: []
+      },
+      serviceIds: {},
     };
     const polRegioLoad = {
-      raw: {},
+      raw: {
+        stops: []
+      },
       serviceIds: {}
     };
     // const pkpIntercityLoad = {
@@ -359,14 +367,20 @@ async function loadData() {
     // Trains
 
     // SKM Trójmiasto
-    await importGtfs(configSKMTrojmiasto);
-    const dbSKMTrojmiasto = openDb(configSKMTrojmiasto);
-    skmTrojmiastoLoad.raw.stops = getStops({}, [], [], { db: dbSKMTrojmiasto });
-    skmTrojmiastoLoad.raw.routes = getRoutes({}, [], [], { db: dbSKMTrojmiasto });
-    skmTrojmiastoLoad.raw.trips = getTrips({}, [], [], { db: dbSKMTrojmiasto });
-    skmTrojmiastoLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbSKMTrojmiasto });
-    skmTrojmiastoLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbSKMTrojmiasto });
-    closeDb(dbSKMTrojmiasto)
+    try {
+      await importGtfs(configSKMTrojmiasto);
+      const dbSKMTrojmiasto = openDb(configSKMTrojmiasto);
+      skmTrojmiastoLoad.raw.stops = getStops({}, [], [], { db: dbSKMTrojmiasto });
+      skmTrojmiastoLoad.raw.routes = getRoutes({}, [], [], { db: dbSKMTrojmiasto });
+      skmTrojmiastoLoad.raw.trips = getTrips({}, [], [], { db: dbSKMTrojmiasto });
+      skmTrojmiastoLoad.raw.calendarDates = getCalendarDates({}, [], [], { db: dbSKMTrojmiasto });
+      skmTrojmiastoLoad.raw.stopTimes = getStoptimes({}, [], [], { db: dbSKMTrojmiasto });
+      closeDb(dbSKMTrojmiasto)
+      sendTelegramMessage("SKM Trójmiasto departures have been loaded successfully")
+    } catch (err) {
+      console.log(err.message)
+      sendTelegramMessage(err.message)
+    }
 
     // PolRegio
     /*await importGtfs(configPolRegio);
@@ -424,7 +438,7 @@ async function loadData() {
     console.log("•");
     console.log("Data loaded successfully!", dateNow.format("YYYY-MM-DD HH:mm:ss"));
     console.log("•");
-    sendTelegramMessage("Data loaded successfully!")
+    // sendTelegramMessage("Data loaded successfully!")
 
     // Working with loaded data
 
@@ -1031,16 +1045,23 @@ async function loadData() {
     sendTelegramMessage("Data processed successfully!")
 
   } else {
-    const keep_from_sleep = await fetch(
-      PROXY_URL + "/dev/bruh"
-    );
+    // const keep_from_sleep = await fetch(
+    //   PROXY_URL + "/dev/bruh"
+    // );
     // console.log(await keep_from_sleep.json());
     // console.log("Nah");
   }
 }
 
-loadData();
-const interval = setInterval(() => loadData(), 60000);
+try {
+  loadData()
+} catch (err) {
+  sendTelegramMessage("Error while loading data")
+  sendTelegramMessage(err)
+}
+
+// loadData();
+// const interval = setInterval(() => loadData(), 60000);
 
 async function testLoadData() {
 
