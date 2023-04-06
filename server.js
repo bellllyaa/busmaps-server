@@ -30,6 +30,28 @@ app.use((req, res, next) => {
   next();
 });
 
+async function sendTelegramMessage(text, photo) {
+
+  bot.telegram.sendMessage(CHAT_ID, text, {});
+
+  // const formText = new FormData();
+  // formText.append("text", text);
+
+  // fetch(
+  //   `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}`,
+  //   {
+  //     method: "POST",
+  //     body: formText,
+  //   }
+  // )
+  
+  // if (photo) {
+  //   setTimeout(() => {
+  //     bot.telegram.sendPhoto(CHAT_ID, photo, {})
+  //   }, 700);
+  // }
+}
+
 import {
   importGtfs,
   openDb,
@@ -84,12 +106,23 @@ import FormData from "form-data"
 import fs from "fs";
 import moment from "moment-timezone";
 let tmp;
-if (process.env.NODE_ENV === "production") {
-  tmp = "/dev/sdb";
-} else {
+if (process.env.USER === "belllyaa") {
   tmp = process.cwd();
+} else {
+  tmp = "/dev/sdb";
 }
 console.log(tmp)
+
+console.log(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
+console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
+console.log(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
+console.log(`process.env.DEV: ${process.env.DEV}`)
+sendTelegramMessage(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
+sendTelegramMessage(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
+sendTelegramMessage(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
+sendTelegramMessage(`process.env.DEV: ${process.env.DEV}`)
+sendTelegramMessage(tmp)
+
 // let cwd;
 // if (process.env.DEV && process.env.DEV === "Yes") {
 //   cwd = process.cwd();
@@ -98,33 +131,6 @@ console.log(tmp)
 //   cwd = "/tmp";
 // }
 // console.log(process.env.DEV)
-
-async function sendTelegramMessage(text, photo) {
-
-  bot.telegram.sendMessage(CHAT_ID, text, {});
-
-  // const formText = new FormData();
-  // formText.append("text", text);
-
-  // fetch(
-  //   `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}`,
-  //   {
-  //     method: "POST",
-  //     body: formText,
-  //   }
-  // )
-  
-  // if (photo) {
-  //   setTimeout(() => {
-  //     bot.telegram.sendPhoto(CHAT_ID, photo, {})
-  //   }, 700);
-  // }
-}
-if (tmp) {
-  sendTelegramMessage(tmp)
-} else {
-  sendTelegramMessage("tmp is not defined")
-}
 
 // function to create file from base64 encoded string
 function base64DecodeAndSave(base64str, savePath) {
