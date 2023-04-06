@@ -109,7 +109,8 @@ let tmp;
 if (process.env.USER === "belllyaa") {
   tmp = process.cwd();
 } else {
-  tmp = "/dev/sdb";
+  // tmp = "/dev/sdb";
+  tmp = "/mnt/temp"
 }
 console.log(tmp)
 
@@ -173,7 +174,7 @@ if (fs.existsSync(tmp + "/db")) {
   console.log('Directory exists!');
 } else {
   console.log('Directory not found.');
-  fs.mkdirSync(tmp + "/db")
+  fs.mkdirSync(tmp + "/db", { recursive: true })
 }
 
 import Database from "better-sqlite3";
