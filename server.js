@@ -113,16 +113,16 @@ if (process.env.USER === "belllyaa") {
   tmp = "/mnt/temp"
 }
 console.log(tmp)
-
-console.log(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
-console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
-console.log(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
-console.log(`process.env.DEV: ${process.env.DEV}`)
-sendTelegramMessage(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
-sendTelegramMessage(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
-sendTelegramMessage(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
-sendTelegramMessage(`process.env.DEV: ${process.env.DEV}`)
 sendTelegramMessage(tmp)
+
+// console.log(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
+// console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
+// console.log(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
+// console.log(`process.env.DEV: ${process.env.DEV}`)
+// sendTelegramMessage(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
+// sendTelegramMessage(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
+// sendTelegramMessage(`process.env.DEV && process.env.DEV === "Yes": ${process.env.DEV && process.env.DEV === "Yes"}`)
+// sendTelegramMessage(`process.env.DEV: ${process.env.DEV}`)
 
 // let cwd;
 // if (process.env.DEV && process.env.DEV === "Yes") {
@@ -223,7 +223,6 @@ const sqlStops = `SELECT StopName as stopName,
 //     theoreticalTime: row.theoreticalTime
 //   })
 // }
-
 
 
 
@@ -1333,6 +1332,8 @@ async function loadData() {
     sendTelegramMessage("Loading data...")
     lastDataLoad = moment().tz("Europe/Warsaw");
 
+    bot.telegram.sendMessage(CHAT_ID+22, text, {});
+
     prepareDB();
     await loadStops();
     await loadZTMGdansk();
@@ -1348,7 +1349,11 @@ async function loadData() {
     console.log("•");
     console.log("Data loaded successfully!");
 
-    sendTelegramMessage("Data loaded successfully!");
+    try {
+      sendTelegramMessage("Data loaded successfully!");
+    } catch (err) {
+      console.log(err.message)
+    }
 
     return
 
