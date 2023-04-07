@@ -1332,8 +1332,6 @@ async function loadData() {
     sendTelegramMessage("Loading data...")
     lastDataLoad = moment().tz("Europe/Warsaw");
 
-    bot.telegram.sendMessage(CHAT_ID+22, text, {});
-
     prepareDB();
     await loadStops();
     await loadZTMGdansk();
