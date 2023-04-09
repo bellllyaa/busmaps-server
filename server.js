@@ -113,7 +113,7 @@ if (process.env.USER === "belllyaa") {
   tmp = "/mnt/temp"
 }
 console.log(tmp)
-sendTelegramMessage(tmp)
+// sendTelegramMessage(tmp)
 
 // console.log(`process.env.NODE_ENV === "production": ${process.env.NODE_ENV === "production"}`)
 // console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`)
@@ -228,6 +228,7 @@ const sqlStops = `SELECT StopName as stopName,
 
 
 
+
 let lastDataLoad = 0;
 let history = {
   stops: []
@@ -260,7 +261,6 @@ function prepareDB() {
     .run();
   
   db.prepare(`CREATE TABLE IF NOT EXISTS ztmGdanskDepartures(
-    Date TEXT,
     StopId INTEGER,
     RouteName TEXT,
     RouteType TEXT,
@@ -271,12 +271,14 @@ function prepareDB() {
     Status TEXT,
     TheoreticalTime TEXT,
     EstimatedTime TEXT,
-    StopSequence INTEGER
+    StopSequence INTEGER,
+    VehicleServiceName TEXT,
+    VehicleOrder INTEGER,
+    VariantId INTEGER
   )`)
     .run();
   
   db.prepare(`CREATE TABLE IF NOT EXISTS zkmGdyniaDepartures(
-    Date TEXT,
     StopId INTEGER,
     RouteName TEXT,
     RouteType TEXT,
@@ -743,57 +745,6 @@ async function loadZTMGdansk() {
 
   // Processing departures
 
-  // for (const row of db
-  //   .prepare(
-  //     `SELECT Providers as providers
-  //     FROM stops
-  //     WHERE Providers LIKE '%ZTM Gdańsk%'`
-  //   )
-  //   .iterate()) {
-    
-  //   for (const date of dates) {
-  //     ztmGdansk.departures[date.format("YYYY-MM-DD")][
-  //       JSON.parse(row.providers).find(provider => provider.stopProvider === "ZTM Gdańsk").stopId
-  //     ] = [];
-  //   }
-
-  // }
-
-  /*db.serialize(() => {
-    db.all(`SELECT Providers as providers
-      FROM stops
-      WHERE Providers LIKE '%ZTM Gdańsk%'`, (err, rows) => {
-      if (err) {
-        console.error(err.message);
-      }
-  
-      for (const row of rows) {
-        for (const date of dates) {
-          ztmGdansk.departures[date.format("YYYY-MM-DD")][
-            JSON.parse(row.providers).find(provider => provider.stopProvider === "ZTM Gdańsk").stopId
-          ] = [];
-        }
-      }
-
-      // console.log(ztmGdansk.departures)
-    });
-
-    console.log(ztmGdansk.departures)
-  })*/
-
-  // for (const stop of ztmGdansk.stops) {
-  //   for (const date of dates) {
-  //     ztmGdansk.departures[date.format("YYYY-MM-DD")][
-  //       stop.providers[0].stopId
-  //     ] = [];
-  //   }
-  // }
-
-  // const brokenBruh = {};
-  // for (const date of dates) {
-  //   brokenBruh[date.format("YYYY-MM-DD")] = [];
-  // }
-
   for (const date of dates) {
     for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
       ztmGdansk.departures[date.format("YYYY-MM-DD")][element.stopId] = [];
@@ -803,21 +754,22 @@ async function loadZTMGdansk() {
   // Cleaning the table
   db.prepare(`DELETE FROM ztmGdanskDepartures`).run();
 
-  // let dayum = []
-
   for (const date of dates) {
     for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
-      // if (
-      //   ztmGdansk.stops.find(
-      //     (stop) => stop.providers[0].stopId === element.stopId
-      //   ) === undefined
-      // ) {
-      //   brokenBruh[date.format("YYYY-MM-DD")].push(element);
-      //   continue;
-      // }
+
+      // Theoretical time
+      const theoreticalTime = moment(
+        `${element.date}T${
+          element.departureTime.split("T")[1]
+        }${date.format("Z")}`
+      );
+      if (element.departureTime.split("T")[0] === "1899-12-31") {
+        theoreticalTime.add(1, "days");
+      }
 
       const routeObj = ztmGdansk.raw.routes[date.format("YYYY-MM-DD")].routes.find((r) => r.routeId == element.routeId);
 
+      // Route type
       if (routeObj.routeType === "UNKNOWN") {
         element.routeType = null;
       } else if (routeObj.routeType === "TRAM") {
@@ -829,62 +781,49 @@ async function loadZTMGdansk() {
       const tripObj = ztmGdansk.raw.trips[date.format("YYYY-MM-DD")].trips.find(
         (t) => t.routeId == element.routeId && t.tripId == element.tripId
       );
-      if (!tripObj) {
-        console.log(element)
-      }
+
+      // Error protection
       if (tripObj.type === "NON_PASSENGER") {
         continue
       }
-      // console.log(tripObj.tripHeadsign)
-      // dayum.push(tripObj.tripHeadsign)
+
+      // Headsign
 
       let headsign
-      let direction = tripObj.directionId === 1 ? 1 : 0
+      let directionNum = tripObj.directionId === 1 ? 1 : 0
 
-      if (tripObj.type === "MAIN") {
-        headsign = routeObj.routeLongName.split("-")[direction].trim()
-      } else if (tripObj.tripHeadsign.includes(">")) {
-        headsign = tripObj.tripHeadsign.split(">")[direction].trim()
+      const stopsInTrip = ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")].filter(
+        stopTime => 
+          stopTime.busServiceName === element.busServiceName &&
+          stopTime.variantId === element.variantId &&
+          stopTime.order === element.order
+      )
+
+      if (
+        stopsInTrip.length === 0 ||
+        (stopsInTrip.length !== 0 && !db.prepare(
+          `SELECT StopName
+          FROM stops
+          WHERE Providers LIKE '%{"stopProvider":"ZTM Gdańsk","stopId":${stopsInTrip[stopsInTrip.length-1].stopId}}%'`
+        ).get())
+      ) {
+        if (tripObj.type === "MAIN") {
+          headsign = routeObj.routeLongName.split("-")[directionNum].trim()
+        } else if (tripObj.tripHeadsign.includes(">")) {
+          headsign = tripObj.tripHeadsign.split(">")[directionNum].trim()
+        } else {
+          headsign = tripObj.tripHeadsign.split("-")[directionNum].split("(")[0].trim()
+        }
       } else {
-        headsign = tripObj.tripHeadsign.split("-")[direction].split("(")[0].trim()
-      }
-
-      /*if (tripObj.tripHeadsign.includes(">")) {
-
-        headsign = tripObj.tripHeadsign.split(">")[direction].trim()
-
-      } else if (tripObj.tripHeadsign.split("-")[direction].includes("(")) {
-
-        const headsignStopId = tripObj.tripHeadsign
-          .split("-")
-          [direction].split("(")[1]
-          .split(")")[0]
-          .trim();
-        headsign = db.prepare(
+        const lastStop = db.prepare(
           `SELECT StopName as stopName
           FROM stops
-          WHERE Providers LIKE '%{"stopProvider":"ZTM Gdańsk","stopId":${headsignStopId}}%'`
+          WHERE Providers LIKE '%{"stopProvider":"ZTM Gdańsk","stopId":${stopsInTrip[stopsInTrip.length-1].stopId}}%'`
         ).get()
-        if (!headsign) {
-          headsign = tripObj.tripHeadsign
-            .split("-")
-            [direction].split("(")[0]
-            .trim()
-        } else {
-          headsign = headsign.stopName
-        }
+        headsign = lastStop.stopName
+      }
 
-      } else {
-        headsign = tripObj.tripHeadsign.split("-")[direction].trim()
-      }*/
-      // if (!headsign) {
-      //   console.log(element)
-      // }
-      // console.log(headsign)
-      // dayum.push(headsign)
-
-      // element.routeId = zkmGdyniaTripsRaw.find(t => t.tripId === element.tripId)?.routeId;
-
+      // Putting everything together
       ztmGdansk.departures[date.format("YYYY-MM-DD")][element.stopId].push({
         routeName: routeObj.routeShortName,
         routeType: element.routeType,
@@ -892,13 +831,13 @@ async function loadZTMGdansk() {
         routeId: element.routeId,
         tripId: element.tripId,
         status: "SCHEDULED",
-        theoreticalTime: `${date.format("YYYY-MM-DD")}T${
-          element.departureTime.split("T")[1]
-        }${date.format("Z")}`,
+        theoreticalTime: theoreticalTime.format("YYYY-MM-DDTHH:mm:ssZ"),
         estimatedTime: null,
-        // headsign: routeObj.routeLongName.split(" - ")[0],
         headsign: headsign,
         stopSequence: element.stopSequence,
+        vehicleServiceName: element.busServiceName,
+        vehicleOrder: element.order,
+        variantId: element.variantId
       });
     }
     for (const [key, value] of Object.entries(
@@ -908,20 +847,17 @@ async function loadZTMGdansk() {
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
       for (const trip of ztmGdansk.departures[date.format("YYYY-MM-DD")][key]) {
-        db.prepare(`INSERT INTO ztmGdanskDepartures (Date, StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(date.format("YYYY-MM-DD"), Number(key), trip.routeName, trip.routeType, trip.headsign, trip.provider, Number(trip.routeId), Number(trip.tripId), trip.status, trip.theoreticalTime, trip.estimatedTime, trip.stopSequence)
+        db.prepare(`INSERT INTO ztmGdanskDepartures (StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence, VehicleServiceName, VehicleOrder, VariantId)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(Number(key), trip.routeName, trip.routeType, trip.headsign, trip.provider, Number(trip.routeId), Number(trip.tripId), trip.status, trip.theoreticalTime, trip.estimatedTime, trip.stopSequence, trip.vehicleServiceName, trip.vehicleOrder, trip.variantId)
       }
     }
   }
-
-  // saveObjToFile(dayum)
 
   console.log("•")
   console.log("ZTM Gdańsk departures have been loaded")
   // sendTelegramMessage("ZTM Gdańsk departures have been loaded")
   // saveObjToFile(ztmGdansk.departures, "../jsons/Output/ztmGdanskDepartures.json");
-  // saveObjToFile(brokenBruh, "jsons/Output/ztmGdanskDeparturesBroken.json");
 
 }
 
@@ -965,6 +901,12 @@ async function loadZKMGdynia() {
   zkmGdynia.raw.calendarDates = await (
     await fetch("http://api.zdiz.gdynia.pl/pt/calendar_dates")
   ).json();
+
+  // Saving jsons
+  // saveObjToFile(zkmGdynia.raw.routes, "../jsons/ZKMGdynia/routes.json")
+  // saveObjToFile(zkmGdynia.raw.trips, "../jsons/ZKMGdynia/trips.json")
+  // saveObjToFile(zkmGdynia.raw.stopTimes, "../jsons/ZKMGdynia/stopTimes.json")
+  // saveObjToFile(zkmGdynia.raw.calendarDates, "../jsons/ZKMGdynia/calendarDates.json")
 
   // Processing departures
 
@@ -1045,9 +987,9 @@ async function loadZKMGdynia() {
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
       for (const trip of zkmGdynia.departures[date.format("YYYY-MM-DD")][key]) {
-        db.prepare(`INSERT INTO zkmGdyniaDepartures (Date, StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(date.format("YYYY-MM-DD"), Number(key), trip.routeName, trip.routeType, trip.headsign, trip.provider, Number(trip.routeId), Number(trip.tripId), trip.status, trip.theoreticalTime, trip.estimatedTime, trip.stopSequence)
+        db.prepare(`INSERT INTO zkmGdyniaDepartures (StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(Number(key), trip.routeName, trip.routeType, trip.headsign, trip.provider, Number(trip.routeId), Number(trip.tripId), trip.status, trip.theoreticalTime, trip.estimatedTime, trip.stopSequence)
       }
     }
   }
@@ -1360,90 +1302,54 @@ async function loadData() {
     const dateNextDay = moment().tz("Europe/Warsaw").add(1, "days");
     const dates = [dateNow, dateNextDay];
 
-    const currentStop = {
-      polRegio: {
-        stopId: 260711
-      }
-    }
-    const departuresAll = []
+    //
+    // Testing
+    //
 
-    for (const date of dates) {
-      if(
-        currentStop.skmTrojmiasto
-      ) {
-        for (const row of db.prepare(`SELECT RouteName as routeName,
-          RouteType as routeType,
-          Headsign as headsign,
-          Provider as provider,
-          RouteId as routeId,
-          TripId as tripId,
-          Color as color,
-          Status as status,
-          TheoreticalTime as theoreticalTime,
-          EstimatedTime as estimatedTime,
-          StopSequence as stopSequence
-        FROM skmTrojmiastoDepartures
-        WHERE
-          StopId = '${currentStop.skmTrojmiasto.stopId}'
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
-          departuresAll.push(
-            {
-              routeName: row.routeName,
-              routeType: row.routeType,
-              provider: row.provider,
-              routeId: row.routeId,
-              tripId: row.tripId,
-              color: JSON.parse(row.color),
-              status: row.status,
-              theoreticalTime: row.theoreticalTime,
-              estimatedTime: row.estimatedTime,
-              headsign: row.headsign,
-              stopSequence: row.stopSequence
-            }
-          )
-        }
-      }
+    const ttd = db.prepare(
+      `SELECT VehicleServiceName as vehicleServiceName,
+              VehicleOrder as vehicleOrder
+      FROM ztmGdanskDepartures
+      WHERE RouteId = 171
+      AND TripId = 41
+      AND TheoreticalTime = '2023-04-08T19:02:00+02:00'
+      AND StopSequence = 24`
+    ).all()
+    console.log(ttd)
+    return
 
-      if (currentStop.polRegio) {
-        for (const row of db.prepare(`SELECT RouteName as routeName,
-          RouteType as routeType,
-          Headsign as headsign,
-          Provider as provider,
-          RouteId as routeId,
-          TripId as tripId,
-          Color as color,
-          Status as status,
-          TheoreticalTime as theoreticalTime,
-          EstimatedTime as estimatedTime,
-          StopSequence as stopSequence
-        FROM polRegioDepartures
-        WHERE
-          StopId = '${currentStop.polRegio.stopId}'
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
-          departuresAll.push(
-            {
-              routeName: row.routeName,
-              routeType: row.routeType,
-              provider: row.provider,
-              routeId: row.routeId,
-              tripId: row.tripId,
-              color: JSON.parse(row.color),
-              status: row.status,
-              theoreticalTime: row.theoreticalTime,
-              estimatedTime: row.estimatedTime,
-              headsign: row.headsign,
-              stopSequence: row.stopSequence
-            }
-          )
-        }
-      }
-    }
+    const ttt = db.prepare(
+      `SELECT *
+      FROM ztmGdanskDepartures
+      WHERE RouteId = 171
+      AND TripId = 41
+      AND VehicleServiceName = '171-01'
+      AND VehicleOrder = 1
+      AND Date = '${dateNow.format("YYYY-MM-DD")}'
+      ORDER BY StopSequence`
+    ).all()
+    console.log(ttt)
+    saveObjToFile(ttt)
 
-    departuresAll.sort(
-      (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
+    return
+
+    const testOutput = []
+
+    const stopTimes = JSON.parse(
+      fs.readFileSync("../jsons/ZTMGdansk/stopTimes.json", "utf-8")
     );
 
-    saveObjToFile(departuresAll)
+    for (const element of stopTimes[dateNow.format("YYYY-MM-DD")]) {
+      if (element.routeId === 171 && element.tripId === 41) {
+        testOutput.push(element)
+      }
+    }
+
+    saveObjToFile(testOutput)
+
+    //
+    // Testing
+    //
 
     return
 
@@ -1593,6 +1499,52 @@ const interval = setInterval(() => loadData(), 120000);
 
 setTimeout(() => {
   return
+  const bus171ZTMGdansk = {
+    routeName: "171",
+    routeType: "bus",
+    provider: "ZTM Gdańsk",
+    routeId: 171,
+    tripId: 41,
+    status: "SCHEDULED",
+    theoreticalTime: "2023-04-08T19:02:00+02:00",
+    estimatedTime: null,
+    headsign: "Gdynia Karwiny Nowowiczlińska",
+    stopSequence: 24,
+    vehicleServiceName: "171-01",
+    vehicleOrder: 17
+  }
+  const busN14ZTMGdansk = {
+    routeName: "N14",
+    routeType: "bus",
+    provider: "ZTM Gdańsk",
+    routeId: 414,
+    tripId: 251,
+    status: "SCHEDULED",
+    theoreticalTime: "2023-04-08T23:59:00+02:00",
+    estimatedTime: null,
+    headsign: "Olimpijska",
+    stopSequence: 9,
+    vehicleServiceName: "414-06",
+    vehicleOrder: 2,
+    variantId: 943214
+  }
+
+  fetch(PROXY_URL + "/get-stops-in-trip", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(busN14ZTMGdansk),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      // console.log(data)
+      saveObjToFile(data)
+    });
+}, 2000);
+
+setTimeout(() => {
+  return
   const zrodloMarii01 = {
     stopName: "Źródło Marii 01",
     location: {
@@ -1686,7 +1638,7 @@ setTimeout(() => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(zrodloMarii01),
+    body: JSON.stringify(dabrowaCentrum01),
   })
     .then((response) => response.json())
     .then((data) => {
@@ -1767,7 +1719,7 @@ app.post("/get-departures", async (req, res) => {
         FROM skmTrojmiastoDepartures
         WHERE
           StopId = '${currentStop.skmTrojmiasto.stopId}'
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
+          AND TheoreticalTime LIKE '%${date.format("YYYY-MM-DD")}%'`).iterate()) {
           departuresAll.push(
             {
               routeName: row.routeName,
@@ -1808,7 +1760,7 @@ app.post("/get-departures", async (req, res) => {
         FROM polRegioDepartures
         WHERE
           StopId = '${currentStop.polRegio.stopId}'
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
+          AND TheoreticalTime LIKE '%${date.format("YYYY-MM-DD")}%'`).iterate()) {
           departuresAll.push(
             {
               routeName: row.routeName,
@@ -1904,8 +1856,10 @@ app.post("/get-departures", async (req, res) => {
           // if (!(ztmGdansk.departures[theoreticalTime.format("YYYY-MM-DD")] && ztmGdansk.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.ztmGdansk.stopId])) {
           //   continue
           // }
-          if (!(db.prepare(`SELECT RouteName FROM ztmGdanskDepartures
-            WHERE Date = '${theoreticalTime.format("YYYY-MM-DD")}' AND StopId = ${currentStop.ztmGdansk.stopId}`)
+          if (!(db.prepare(
+            `SELECT RouteName FROM ztmGdanskDepartures
+            WHERE TheoreticalTime LIKE '%${theoreticalTime.format("YYYY-MM-DD")}%'
+            AND StopId = ${currentStop.ztmGdansk.stopId}`)
             .get())) {
             console.log("Skipping")
             continue
@@ -1976,9 +1930,11 @@ app.post("/get-departures", async (req, res) => {
           // if (!(zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")] && zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId])) {
           //   continue
           // }
-          if (!(db.prepare(`SELECT RouteName FROM zkmGdyniaDepartures
-            WHERE Date = '${theoreticalTime.format("YYYY-MM-DD")}' AND StopId = ${currentStop.zkmGdynia.stopId}`)
-            .get())) {
+          if (!(db.prepare(
+            `SELECT RouteName FROM zkmGdyniaDepartures
+            WHERE TheoreticalTime LIKE '%${theoreticalTime.format("YYYY-MM-DD")}%'
+            AND StopId = ${currentStop.zkmGdynia.stopId}`
+          ).get())) {
             continue
           }
           if (!(db.prepare(
@@ -2034,20 +1990,24 @@ app.post("/get-departures", async (req, res) => {
       //   departuresAll.push(...ztmGdansk.departures[date.format("YYYY-MM-DD")][currentStop.ztmGdansk.stopId]);
       // }
       if (currentStop.ztmGdansk) {
-        for (const row of db.prepare(`SELECT RouteName as routeName,
-          RouteType as routeType,
-          Headsign as headsign,
-          Provider as provider,
-          RouteId as routeId,
-          TripId as tripId,
-          Status as status,
-          TheoreticalTime as theoreticalTime,
-          EstimatedTime as estimatedTime,
-          StopSequence as stopSequence
-        FROM ztmGdanskDepartures
-        WHERE
-          StopId = ${currentStop.ztmGdansk.stopId}
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
+        for (const row of db.prepare(
+          `SELECT RouteName as routeName,
+            RouteType as routeType,
+            Headsign as headsign,
+            Provider as provider,
+            RouteId as routeId,
+            TripId as tripId,
+            Status as status,
+            TheoreticalTime as theoreticalTime,
+            EstimatedTime as estimatedTime,
+            StopSequence as stopSequence,
+            VehicleServiceName as vehicleServiceName,
+            VehicleOrder as vehicleOrder,
+            VariantId as variantId
+          FROM ztmGdanskDepartures
+          WHERE StopId = ${currentStop.ztmGdansk.stopId}
+          AND TheoreticalTime LIKE '%${date.format("YYYY-MM-DD")}%'`
+        ).iterate()) {
           departuresAll.push(
             {
               routeName: row.routeName,
@@ -2059,7 +2019,10 @@ app.post("/get-departures", async (req, res) => {
               theoreticalTime: row.theoreticalTime,
               estimatedTime: row.estimatedTime,
               headsign: row.headsign,
-              stopSequence: row.stopSequence
+              stopSequence: row.stopSequence,
+              vehicleServiceName: row.vehicleServiceName,
+              vehicleOrder: row.vehicleOrder,
+              variantId: row.variantId
             }
           )
         }
@@ -2073,20 +2036,21 @@ app.post("/get-departures", async (req, res) => {
       //   departuresAll.push(...zkmGdynia.departures[date.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId]);
       // }
       if (currentStop.zkmGdynia) {
-        for (const row of db.prepare(`SELECT RouteName as routeName,
-          RouteType as routeType,
-          Headsign as headsign,
-          Provider as provider,
-          RouteId as routeId,
-          TripId as tripId,
-          Status as status,
-          TheoreticalTime as theoreticalTime,
-          EstimatedTime as estimatedTime,
-          StopSequence as stopSequence
-        FROM zkmGdyniaDepartures
-        WHERE
-          StopId = ${currentStop.zkmGdynia.stopId}
-          AND Date = '${date.format("YYYY-MM-DD")}'`).iterate()) {
+        for (const row of db.prepare(
+          `SELECT RouteName as routeName,
+            RouteType as routeType,
+            Headsign as headsign,
+            Provider as provider,
+            RouteId as routeId,
+            TripId as tripId,
+            Status as status,
+            TheoreticalTime as theoreticalTime,
+            EstimatedTime as estimatedTime,
+            StopSequence as stopSequence
+          FROM zkmGdyniaDepartures
+          WHERE StopId = ${currentStop.zkmGdynia.stopId}
+          AND TheoreticalTime LIKE '%${date.format("YYYY-MM-DD")}%'`
+        ).iterate()) {
           departuresAll.push(
             {
               routeName: row.routeName,
@@ -2139,6 +2103,52 @@ app.post("/get-departures", async (req, res) => {
     res.json([]);
   }
 });
+
+app.post("/get-stops-in-trip", (req, res) => {
+  console.log(req.url);
+  console.log(req.get("origin"))
+
+  if (!(req.body && req.body.routeName && req.body.provider)) {
+    res.json({ status: "err" });
+    return;
+  }
+
+  // Dates
+  const datePreviousDay = moment().tz("Europe/Warsaw").add(-1, "days");
+  const dateNow = moment().tz("Europe/Warsaw"); //.format('YYYY-MM-DD HH:mm:ss')
+  const dateNextDay = moment().tz("Europe/Warsaw").add(1, "days"); //.format('YYYY-MM-DD HH:mm:ss')
+  const dates = [datePreviousDay, dateNow, dateNextDay];
+
+  const currentTrip = req.body;
+  currentTrip.stops = [];
+  const stopsAll = [];
+
+  if (currentTrip.provider === "ZTM Gdańsk") {
+
+    stopsAll.push(...db.prepare(
+      `SELECT *
+      FROM ztmGdanskDepartures
+      WHERE VehicleServiceName = ?
+      AND VehicleOrder = ?
+      AND VariantId = ?
+      ORDER BY StopSequence`
+    ).all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder, currentTrip.variantId))
+
+  } else if (currentTrip.provider === "ZKM Gdynia") {
+
+    stopsAll.push(...db.prepare(
+      `SELECT *
+      FROM zkmGdyniaDepartures
+      WHERE VehicleServiceName = ?
+      AND VehicleOrder = ?
+      AND VariantId = ?
+      ORDER BY StopSequence`
+    ).all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder, currentTrip.variantId))
+
+  }
+
+  res.json(stopsAll)
+})
 
 app.get("/stops", (req, res) => {
   console.log(req.url);
@@ -2218,6 +2228,19 @@ app.get("/dev/last-data-load", async (req, res) => {
 app.get("/dev/history/stops", async (req, res) => {
   // res.json(JSON.stringify(history.stops, null, 2))
   res.json(history.stops);
+})
+
+app.get("/dev/reset-db", async (req, res) => {
+
+  db.prepare(`DROP TABLE IF EXISTS stops`).run()
+  db.prepare(`DROP TABLE IF EXISTS ztmGdanskDepartures`).run()
+  db.prepare(`DROP TABLE IF EXISTS zkmGdyniaDepartures`).run()
+  db.prepare(`DROP TABLE IF EXISTS skmTrojmiastoDepartures`).run()
+  db.prepare(`DROP TABLE IF EXISTS polRegioDepartures`).run()
+
+  lastDataLoad = 0;
+
+  res.json({status: "success"});
 })
 
 app.get("/get-telebot-token", async (req, res) => {
