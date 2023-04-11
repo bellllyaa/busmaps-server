@@ -985,7 +985,7 @@ async function loadZTMGdanskZKMGdynia() {
 
   console.log("•");
   console.log("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
-  // sendTelegramMessage("ZTM Gdańsk departures have been loaded")
+  sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded")
   // saveObjToFile(ztmGdansk.departures, "../jsons/Output/ztmGdanskDepartures.json");
 }
 
@@ -1921,7 +1921,7 @@ async function loadData() {
 }
 
 // loadData();
-// setTimeout(() => loadData(), 1000)
+setTimeout(() => loadData(), 1000)
 const interval = setInterval(() => loadData(), 120000);
 
 setTimeout(() => {
@@ -2421,12 +2421,16 @@ app.post("/get-departures", async (req, res) => {
           stopId: provider.stopId,
         };
         try {
-          ztmGdanskDeparturesRealtime = await (
-            await fetch(
-              `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
-            )
-          ).json();
-        } catch {
+          const data = await fetch(
+            `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
+          )
+          const dataJSON = await data.json()
+          if (dataJSON.departures) {
+            ztmGdanskDeparturesRealtime = dataJSON
+          }
+        } catch (error) {
+          console.log(error.message)
+          sendTelegramMessage(error.message)
           continue
         }
       } else if (provider.stopProvider === "ZKM Gdynia") {
@@ -2434,12 +2438,16 @@ app.post("/get-departures", async (req, res) => {
           stopId: provider.stopId,
         };
         try {
-          zkmGdyniaDeparturesRealtime = await (
-            await fetch(
-              `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
-            )
-          ).json();
-        } catch {
+          const data = await fetch(
+            `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
+          )
+          const dataJSON = await data.json()
+          if (dataJSON.departures) {
+            zkmGdyniaDeparturesRealtime = dataJSON
+          }
+        } catch (error) {
+          console.log(error.message)
+          sendTelegramMessage(error.message)
           continue
         }
         // zkmGdyniaDeparturesRealtimeTest = await (await fetch(`http://api.zdiz.gdynia.pl/pt/delays?stopId=${provider.stopId}`)).json();
@@ -2477,10 +2485,10 @@ app.post("/get-departures", async (req, res) => {
             !db
               .prepare(
                 `SELECT RouteName FROM ztmGdanskDepartures
-            WHERE TheoreticalTime LIKE '%${theoreticalTime.format(
-              "YYYY-MM-DD"
-            )}%'
-            AND StopId = ${currentStop.ztmGdansk.stopId}`
+                WHERE TheoreticalTime LIKE '%${theoreticalTime.format(
+                  "YYYY-MM-DD"
+                )}%'
+                AND StopId = ${currentStop.ztmGdansk.stopId}`
               )
               .get()
           ) {
@@ -2491,10 +2499,10 @@ app.post("/get-departures", async (req, res) => {
             !db
               .prepare(
                 `SELECT RouteName FROM ztmGdanskDepartures
-            WHERE TheoreticalTime = '${theoreticalTime.format(
-              "YYYY-MM-DDTHH:mm:ssZ"
-            )}'
-            AND StopId = ${currentStop.ztmGdansk.stopId}`
+                WHERE TheoreticalTime = '${theoreticalTime.format(
+                  "YYYY-MM-DDTHH:mm:ssZ"
+                )}'
+                AND StopId = ${currentStop.ztmGdansk.stopId}`
               )
               .get()
           ) {
@@ -2571,10 +2579,10 @@ app.post("/get-departures", async (req, res) => {
             !db
               .prepare(
                 `SELECT RouteName FROM zkmGdyniaDepartures
-            WHERE TheoreticalTime LIKE '%${theoreticalTime.format(
-              "YYYY-MM-DD"
-            )}%'
-            AND StopId = ${currentStop.zkmGdynia.stopId}`
+                WHERE TheoreticalTime LIKE '%${theoreticalTime.format(
+                  "YYYY-MM-DD"
+                )}%'
+                AND StopId = ${currentStop.zkmGdynia.stopId}`
               )
               .get()
           ) {
@@ -2584,10 +2592,10 @@ app.post("/get-departures", async (req, res) => {
             !db
               .prepare(
                 `SELECT RouteName FROM zkmGdyniaDepartures
-            WHERE TheoreticalTime = '${theoreticalTime.format(
-              "YYYY-MM-DDTHH:mm:ssZ"
-            )}'
-            AND StopId = ${currentStop.zkmGdynia.stopId}`
+                WHERE TheoreticalTime = '${theoreticalTime.format(
+                  "YYYY-MM-DDTHH:mm:ssZ"
+                )}'
+                AND StopId = ${currentStop.zkmGdynia.stopId}`
               )
               .get()
           ) {
