@@ -634,6 +634,7 @@ async function loadStops() {
 
   console.log("•");
   console.log("Stops have been loaded");
+  sendTelegramMessage("Stops have been loaded")
 }
 
 async function loadZTMGdanskZKMGdynia() {
@@ -985,7 +986,7 @@ async function loadZTMGdanskZKMGdynia() {
 
   console.log("•");
   console.log("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
-  sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded")
+  sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
   // saveObjToFile(ztmGdansk.departures, "../jsons/Output/ztmGdanskDepartures.json");
 }
 
@@ -1314,6 +1315,7 @@ async function loadMZKWejherowo() {
 
   console.log("•");
   console.log("MZK Wejherowo departures have been loaded");
+  sendTelegramMessage("MZK Wejherowo departures have been loaded");
   // saveObjToFile(skmTrojmiasto.departures, "jsons/Output/skmTrojmiastoDepartures.json");
   // sendTelegramMessage("SKM Trojmiasto departures have been loaded")
 }
@@ -1504,6 +1506,7 @@ async function loadSKMTrojmiasto() {
 
   console.log("•");
   console.log("SKM Trojmiasto departures have been loaded");
+  sendTelegramMessage("SKM Trojmiasto departures have been loaded");
   // saveObjToFile(skmTrojmiasto.departures, "jsons/Output/skmTrojmiastoDepartures.json");
   // sendTelegramMessage("SKM Trojmiasto departures have been loaded")
 }
@@ -1686,6 +1689,7 @@ async function loadPolRegio() {
 
   console.log("•");
   console.log("PolRegio departures have been loaded");
+  sendTelegramMessage("PolRegio departures have been loaded");
   // saveObjToFile(polRegio.departures, "jsons/Output/polRegioDepartures.json");
   // sendTelegramMessage("PolRegio departures have been loaded")
 }
