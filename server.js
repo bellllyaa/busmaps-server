@@ -36,7 +36,7 @@ const AZURE_PROXY_URL = "https://busmaps-server.azurewebsites.net";
 const PROXY_URL = AZURE_PROXY_URL;
 
 let tmp;
-if (process.env.USER === "belllyaa" || true) {
+if (process.env.USER === "belllyaa") {
   tmp = process.cwd();
 } else {
   // tmp = "/dev/sdb";
