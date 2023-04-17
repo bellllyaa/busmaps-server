@@ -43,11 +43,15 @@ if (process.env.NODE_ENV === "production") {
   // applicationURL = "/server";
 } else if (process.env.USER === "belllyaa") {
   tmp = process.cwd();
+} else if (process.env.USER === "azureuser") {
+  tmp = "/home/azureuser/tmp"
 } else {
   // tmp = "/dev/sdb";
-  tmp = "/mnt/temp";
+  // tmp = "/mnt/temp";
+  tmp = "/home/azureuser/tmp"
 }
 console.log(tmp);
+console.log(process.cwd())
 
 const configZTMGdansk = {
   agencies: [
