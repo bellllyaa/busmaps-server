@@ -45,7 +45,6 @@ if (process.env.NODE_ENV === "production") {
   tmp = process.cwd();
 } else if (process.env.USER === "azureuser") {
   tmp = "/home/azureuser/tmp"
-  console.log(process.env.USER)
 } else {
   // tmp = "/dev/sdb";
   // tmp = "/mnt/temp";
