@@ -1,5 +1,5 @@
 {
-  "name": "proxyserver",
+  "name": "busmaps-server",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
