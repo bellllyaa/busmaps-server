@@ -32,9 +32,9 @@ const PORT = process.env.PORT || 8080;
 
 const LOCAL_URL = "http://localhost:5000";
 const GOOGLE_PROXY_URL = "https://bypass-cors-server.ew.r.appspot.com";
-const AZURE_PROXY_URL = "https://busmaps-server.uksouth.cloudapp.azure.com";
+const AZURE_PROXY_URL = "http://busmaps-server.uksouth.cloudapp.azure.com";
 const A2HOSTING_PROXY_URL = "https://www.busmaps-server.a2hosted.com";
-const PROXY_URL = A2HOSTING_PROXY_URL;
+const PROXY_URL = AZURE_PROXY_URL;
 
 let tmp;
 if (process.env.NODE_ENV === "production") {
@@ -1307,7 +1307,8 @@ async function loadZTMGdanskZKMGdynia() {
         });
       }
     }
-    console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`)
+    console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`);
+    setTimeout(() => sendTelegramMessage(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`), 5000)
   }
   console.log("Sorting and saving to db...");
 
@@ -1381,7 +1382,7 @@ async function loadZTMGdanskZKMGdynia() {
 
   console.log("•");
   console.log("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
-  setTimeout(() => sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded"), 10000)
+  setTimeout(() => sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded"), 5000)
   // saveObjToFile(ztmGdansk.departures, "../jsons/Output/ztmGdanskDepartures.json");
 }
 
@@ -2288,7 +2289,7 @@ async function loadData() {
     // await loadMPKWroclaw();
     await loadSKMTrojmiasto();
     await loadPolRegio();
-    await loadZTMGdanskZKMGdynia();
+    // await loadZTMGdanskZKMGdynia();
 
     // await loadZKMGdynia();
 
@@ -2445,14 +2446,14 @@ async function loadData() {
     // saveObjToFile(pkpIntercity.departures, "jsons/Output/pkpIntercityDepartures.json");
     console.log("PKP Intercity has been loaded")*/
   } else {
-    const keep_from_sleep = await fetch(PROXY_URL + "/dev/bruh");
+    // const keep_from_sleep = await fetch(PROXY_URL + "/dev/bruh");
     // console.log(await keep_from_sleep.json());
     // console.log("Nah");
   }
 }
 
-// setTimeout(() => loadData(), 1000)
-// const interval = setInterval(() => loadData(), 120000);
+setTimeout(() => loadData(), 1000)
+const interval = setInterval(() => loadData(), 120000);
 
 setTimeout(() => {
   return
