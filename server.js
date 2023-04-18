@@ -2289,7 +2289,7 @@ async function loadData() {
     // await loadMPKWroclaw();
     await loadSKMTrojmiasto();
     await loadPolRegio();
-    // await loadZTMGdanskZKMGdynia();
+    await loadZTMGdanskZKMGdynia();
 
     // await loadZKMGdynia();
 
@@ -2307,7 +2307,7 @@ async function loadData() {
     console.log("•");
     console.log("Data loaded successfully!");
 
-    // sendTelegramMessage("Data loaded successfully!");
+    sendTelegramMessage("Data loaded successfully!");
 
     return;
 
