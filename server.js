@@ -32,12 +32,11 @@ const PORT = process.env.PORT || 8080;
 
 const LOCAL_URL = "http://localhost:8080";
 const GOOGLE_PROXY_URL = "https://bypass-cors-server.ew.r.appspot.com";
-const AZURE_PROXY_URL = "https://busmaps-server.azurewebsites.net";
+const AZURE_PROXY_URL = "https://busmaps-server.uksouth.cloudapp.azure.com";
 const A2HOSTING_PROXY_URL = "https://www.busmaps-server.a2hosted.com";
 const PROXY_URL = A2HOSTING_PROXY_URL;
 
 let tmp;
-let applicationURL = "";
 if (process.env.NODE_ENV === "production") {
   tmp = "/home/busmapss/tmp";
   // applicationURL = "/server";
@@ -1308,6 +1307,7 @@ async function loadZTMGdanskZKMGdynia() {
         });
       }
     }
+    console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`)
   }
   console.log("Sorting and saving to db...");
 
@@ -2284,11 +2284,11 @@ async function loadData() {
     prepareDB();
     await loadStops();
     // await loadZTMGdanskZKMGdyniaGTFS();
-    await loadZTMGdanskZKMGdynia();
     await loadMZKWejherowo();
     // await loadMPKWroclaw();
     await loadSKMTrojmiasto();
     await loadPolRegio();
+    await loadZTMGdanskZKMGdynia();
 
     // await loadZKMGdynia();
 
@@ -2773,7 +2773,7 @@ async function updateEstimatedTime(stop, filters) {
   }
 }
 
-app.post(applicationURL + "/get-departures", async (req, res) => {
+app.post("/get-departures", async (req, res) => {
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3347,7 +3347,7 @@ app.post(applicationURL + "/get-departures", async (req, res) => {
   }
 });
 
-app.post(applicationURL + "/get-stops-in-trip", async (req, res) => {
+app.post("/get-stops-in-trip", async (req, res) => {
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3560,7 +3560,7 @@ app.post(applicationURL + "/get-stops-in-trip", async (req, res) => {
   res.json(currentTrip.stops);
 });
 
-app.post(applicationURL + "/get-shapes", async (req, res) => {
+app.post("/get-shapes", async (req, res) => {
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3706,7 +3706,7 @@ app.post("/gps-positions", async (req, res) => {
   res.json(gpsPositions);
 })
 
-app.get(applicationURL + "/stops", (req, res) => {
+app.get("/stops", (req, res) => {
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3727,7 +3727,7 @@ app.get(applicationURL + "/stops", (req, res) => {
   res.json(stops);
 });
 
-app.post(applicationURL + "/report-stop", async (req, res) => {
+app.post("/report-stop", async (req, res) => {
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3755,7 +3755,7 @@ app.post(applicationURL + "/report-stop", async (req, res) => {
   res.json({ status: "success" });
 });
 
-app.get(applicationURL + "/redirect", async (req, res) => {
+app.get("/redirect", async (req, res) => {
   if (req.url.slice(10, 13) === "url") {
     console.log("url");
     console.log(req.url.split("/redirect?url=")[1]);
@@ -3765,20 +3765,20 @@ app.get(applicationURL + "/redirect", async (req, res) => {
   }
 });
 
-app.get(applicationURL + "/dev/bruh", async (req, res) => {
+app.get("/dev/bruh", async (req, res) => {
   res.json([{ bruh: "bruh" }]);
 });
 
-app.get(applicationURL + "/dev/last-data-load", async (req, res) => {
+app.get("/dev/last-data-load", async (req, res) => {
   res.json(lastDataLoad.format("YYYY-MM-DDTHH:mm:ssZ"));
 });
 
-app.get(applicationURL + "/dev/history/stops", async (req, res) => {
+app.get("/dev/history/stops", async (req, res) => {
   // res.json(JSON.stringify(history.stops, null, 2))
   res.json(history.stops);
 });
 
-app.get(applicationURL + "/dev/reset-db", async (req, res) => {
+app.get("/dev/reset-db", async (req, res) => {
   db.prepare(`DROP TABLE IF EXISTS stops`).run();
   db.prepare(`DROP TABLE IF EXISTS ztmGdanskDepartures`).run();
   db.prepare(`DROP TABLE IF EXISTS zkmGdyniaDepartures`).run();
@@ -3792,7 +3792,7 @@ app.get(applicationURL + "/dev/reset-db", async (req, res) => {
   res.json({ status: "success" });
 });
 
-app.get(applicationURL + "/get-telebot-token", async (req, res) => {
+app.get("/get-telebot-token", async (req, res) => {
   // console.log(req);
   console.log(req.get("origin"));
   if (
@@ -3811,6 +3811,13 @@ app.get(applicationURL + "/get-telebot-token", async (req, res) => {
     ]);
   }
 });
+
+app.get("/", (req, res) => {
+  res.json({
+    status: "Dayuuumn it works!",
+    date: moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ")
+  })
+})
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 
