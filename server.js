@@ -30,7 +30,7 @@ import moment from "moment-timezone";
 
 const PORT = process.env.PORT || 8080;
 
-const LOCAL_URL = "http://localhost:5000";
+const LOCAL_URL = "http://localhost:8080";
 const GOOGLE_PROXY_URL = "https://bypass-cors-server.ew.r.appspot.com";
 const AZURE_PROXY_URL = "http://busmaps-server.uksouth.cloudapp.azure.com";
 const A2HOSTING_PROXY_URL = "https://www.busmaps-server.a2hosted.com";
@@ -942,10 +942,6 @@ async function loadZTMGdanskZKMGdynia() {
       shapes: {}
     },
     stops: [],
-    departures: {},
-  };
-  let zkmGdynia = {
-    departures: {}
   };
   const stops = [];
   for (const row of db.prepare(sqlStops).iterate()) {
@@ -962,10 +958,7 @@ async function loadZTMGdanskZKMGdynia() {
   }
 
   for (const date of dates) {
-    ztmGdansk.departures[date.format("YYYY-MM-DD")] = {};
     ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")] = [];
-
-    zkmGdynia.departures[date.format("YYYY-MM-DD")] = {};
   }
 
   // Routes
@@ -1052,15 +1045,16 @@ async function loadZTMGdanskZKMGdynia() {
 
   // Processing departures
 
-  for (const date of dates) {
-    for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
-      ztmGdansk.departures[date.format("YYYY-MM-DD")][element.stopId] = [];
-      zkmGdynia.departures[date.format("YYYY-MM-DD")][element.stopId] = [];
-    }
-  }
-
   console.log("Processing ZTM Gdansk data...")
   for (const date of dates) {
+
+    const ztmGdanskDepartures = {}
+    const zkmGdyniaDepartures = {}
+    for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
+      ztmGdanskDepartures[element.stopId] = [];
+      zkmGdyniaDepartures[element.stopId] = [];
+    }
+
     for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
       // Theoretical time
       const theoreticalTime = moment(
@@ -1140,44 +1134,8 @@ async function loadZTMGdanskZKMGdynia() {
           }
         }
 
-        /*if (
-          stopsInTrip.length === 0 ||
-          (stopsInTrip.length !== 0 &&
-            !db
-              .prepare(
-                `SELECT StopName
-            FROM stops
-            WHERE Providers LIKE '%{"stopProvider":"ZKM Gdynia","stopId":${
-              stopsInTrip[stopsInTrip.length - 1].stopId
-            }}%'`
-              )
-              .get())
-        ) {
-          if (tripObj.type === "MAIN") {
-            headsign = routeObj.routeLongName.split("-")[directionNum].trim();
-          } else if (tripObj.tripHeadsign.includes(">")) {
-            headsign = tripObj.tripHeadsign.split(">")[directionNum].trim();
-          } else {
-            headsign = tripObj.tripHeadsign
-              .split("-")
-              [directionNum].split("(")[0]
-              .trim();
-          }
-        } else {
-          const lastStop = db
-            .prepare(
-              `SELECT StopName as stopName
-            FROM stops
-            WHERE Providers LIKE '%{"stopProvider":"ZKM Gdynia","stopId":${
-              stopsInTrip[stopsInTrip.length - 1].stopId
-            }}%'`
-            )
-            .get();
-          headsign = lastStop.stopName;
-        }*/
-
         // Putting everything together
-        zkmGdynia.departures[date.format("YYYY-MM-DD")][element.stopId].push({
+        zkmGdyniaDepartures[element.stopId].push({
           routeName: routeObj.routeShortName,
           routeType: "bus",
           provider: "ZKM Gdynia",
@@ -1253,44 +1211,8 @@ async function loadZTMGdanskZKMGdynia() {
           }
         }
 
-        /*if (
-          stopsInTrip.length === 0 ||
-          (stopsInTrip.length !== 0 &&
-            !db
-              .prepare(
-                `SELECT StopName
-            FROM stops
-            WHERE Providers LIKE '%{"stopProvider":"ZTM Gdańsk","stopId":${
-              stopsInTrip[stopsInTrip.length - 1].stopId
-            }}%'`
-              )
-              .get())
-        ) {
-          if (tripObj.type === "MAIN") {
-            headsign = routeObj.routeLongName.split("-")[directionNum].trim();
-          } else if (tripObj.tripHeadsign.includes(">")) {
-            headsign = tripObj.tripHeadsign.split(">")[directionNum].trim();
-          } else {
-            headsign = tripObj.tripHeadsign
-              .split("-")
-              [directionNum].split("(")[0]
-              .trim();
-          }
-        } else {
-          const lastStop = db
-            .prepare(
-              `SELECT StopName as stopName
-            FROM stops
-            WHERE Providers LIKE '%{"stopProvider":"ZTM Gdańsk","stopId":${
-              stopsInTrip[stopsInTrip.length - 1].stopId
-            }}%'`
-            )
-            .get();
-          headsign = lastStop.stopName;
-        }*/
-
         // Putting everything together
-        ztmGdansk.departures[date.format("YYYY-MM-DD")][element.stopId].push({
+        ztmGdanskDepartures[element.stopId].push({
           routeName: routeObj.routeShortName,
           routeType: element.routeType,
           provider: "ZTM Gdańsk",
@@ -1307,27 +1229,23 @@ async function loadZTMGdanskZKMGdynia() {
         });
       }
     }
-    console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`);
-    setTimeout(() => sendTelegramMessage(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`), 5000)
-  }
-  console.log("Sorting and saving to db...");
 
-  // Clearing the tables
-  db.prepare(`DELETE FROM zkmGdyniaDepartures`).run();
-  db.prepare(`DELETE FROM ztmGdanskDepartures`).run();
-
-  for (const date of dates) {
+    if (dates[0] - date === 0) {
+      // Clearing the tables
+      console.log("Clearing departure tables...")
+      db.prepare(`DELETE FROM zkmGdyniaDepartures`).run();
+      db.prepare(`DELETE FROM ztmGdanskDepartures`).run();
+    }
 
     // Sorting and saving to db
+    console.log("Sorting and saving to db...");
 
     // ZKM Gdynia
-    for (const [key, value] of Object.entries(
-      zkmGdynia.departures[date.format("YYYY-MM-DD")]
-    )) {
-      zkmGdynia.departures[date.format("YYYY-MM-DD")][key].sort(
+    for (const [key, value] of Object.entries(zkmGdyniaDepartures)) {
+      zkmGdyniaDepartures[key].sort(
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
-      for (const trip of zkmGdynia.departures[date.format("YYYY-MM-DD")][key]) {
+      for (const trip of zkmGdyniaDepartures[key]) {
         db.prepare(
           `INSERT INTO zkmGdyniaDepartures (StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence, VehicleServiceName, VehicleOrder)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -1350,13 +1268,11 @@ async function loadZTMGdanskZKMGdynia() {
     }
 
     // ZTM Gdańsk
-    for (const [key, value] of Object.entries(
-      ztmGdansk.departures[date.format("YYYY-MM-DD")]
-    )) {
-      ztmGdansk.departures[date.format("YYYY-MM-DD")][key].sort(
+    for (const [key, value] of Object.entries(ztmGdanskDepartures)) {
+      ztmGdanskDepartures[key].sort(
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
-      for (const trip of ztmGdansk.departures[date.format("YYYY-MM-DD")][key]) {
+      for (const trip of ztmGdanskDepartures[key]) {
         db.prepare(
           `INSERT INTO ztmGdanskDepartures (StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence, VehicleServiceName, VehicleOrder, VariantId)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -1378,6 +1294,9 @@ async function loadZTMGdanskZKMGdynia() {
         );
       }
     }
+
+    console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`);
+    setTimeout(() => sendTelegramMessage(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`), 5000)
   }
 
   console.log("•");
@@ -2284,12 +2203,13 @@ async function loadData() {
 
     prepareDB();
     await loadStops();
-    // await loadZTMGdanskZKMGdyniaGTFS();
     await loadMZKWejherowo();
-    // await loadMPKWroclaw();
     await loadSKMTrojmiasto();
     await loadPolRegio();
     await loadZTMGdanskZKMGdynia();
+
+    // await loadZTMGdanskZKMGdyniaGTFS();
+    // await loadMPKWroclaw();
 
     // await loadZKMGdynia();
 
