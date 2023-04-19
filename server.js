@@ -222,15 +222,23 @@ import Database from "better-sqlite3";
 const db = new Database(tmp + "/db/busmaps.db");
 db.pragma("journal_mode = WAL");
 
-const sqlStops = `SELECT StopName as stopName,
-                    Lat as lat,
-                    Lng as lng,
-                    ZoneName as zoneName,
-                    StopType as stopType,
-                    Providers as providers
-                  FROM stops`;
+const sqlStops =
+  `SELECT StopName as stopName,
+    Lat as lat,
+    Lng as lng,
+    ZoneName as zoneName,
+    StopType as stopType,
+    Providers as providers
+  FROM stops`;
 
-/*const stmtGetLastDataLoad = db.prepare(
+db.prepare(
+  `CREATE TABLE IF NOT EXISTS variables(
+    Variable TEXT,
+    Value TEXT
+  )`
+).run();
+
+const stmtGetLastDataLoad = db.prepare(
   `SELECT Value as value
   FROM variables
   WHERE Variable = 'lastDataLoad'`
@@ -241,6 +249,12 @@ const stmtUpdateLastDataLoad = db.prepare(
   WHERE Variable = 'lastDataLoad'`
 )
 
+if (!stmtGetLastDataLoad.get()) {
+  db.prepare(
+    `INSERT INTO variables (Variable, Value)
+    VALUES ('lastDataLoad', '1970-01-01')`
+  ).run()
+}
 
 function getLastDataLoad() {
   const data = stmtGetLastDataLoad.get()
@@ -250,25 +264,12 @@ function getLastDataLoad() {
   } else {
     return moment(0).tz("Europe/Warsaw");
   }
-}*/
+}
 
 
 
 
 function prepareDB() {
-  /*db.prepare(
-    `CREATE TABLE IF NOT EXISTS variables(
-      Variable TEXT,
-      Value TEXT
-    )`
-  ).run();
-
-  if (!stmtGetLastDataLoad.get()) {
-    db.prepare(
-      `INSERT INTO variables (Variable, Value)
-      VALUES ('lastDataLoad', '1970-01-01')`
-    ).run()
-  }*/
 
   db.prepare(
     `CREATE TABLE IF NOT EXISTS stops(
@@ -2204,15 +2205,15 @@ async function loadPolRegio() {
 }
 
 async function loadData() {
-  if (moment().tz("Europe/Warsaw") - lastDataLoad > 86400000) {
+  if (moment().tz("Europe/Warsaw") - getLastDataLoad() > 86400000) {
     // Loading data
     console.log("•");
     console.log("Loading data...");
 
     // sendTelegramMessage("Loading data...");
     // sendTelegramMessage("PROXY_URL: " + PROXY_URL.replace("https://", "").replaceAll(".", " "));
-    lastDataLoad = moment().tz("Europe/Warsaw");
-    // stmtUpdateLastDataLoad.run(moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ"))
+    // lastDataLoad = moment().tz("Europe/Warsaw");
+    stmtUpdateLastDataLoad.run(moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ"))
 
     prepareDB();
     await loadStops();
@@ -2227,15 +2228,15 @@ async function loadData() {
     // await loadZKMGdynia();
 
     // Setting lastDataLoad
-    lastDataLoad = moment()
-      .tz("Europe/Warsaw")
-      .set({ hour: 4, minute: 0, second: 0, millisecond: 0 });
-    // stmtUpdateLastDataLoad.run(
-    //   moment()
+    // lastDataLoad = moment()
     //   .tz("Europe/Warsaw")
-    //   .set({ hour: 4, minute: 0, second: 0, millisecond: 0 })
-    //   .format("YYYY-MM-DDTHH:mm:ssZ")
-    // )
+    //   .set({ hour: 4, minute: 0, second: 0, millisecond: 0 });
+    stmtUpdateLastDataLoad.run(
+      moment()
+      .tz("Europe/Warsaw")
+      .set({ hour: 4, minute: 0, second: 0, millisecond: 0 })
+      .format("YYYY-MM-DDTHH:mm:ssZ")
+    )
 
     console.log("•");
     console.log("Data loaded successfully!");
@@ -3704,7 +3705,8 @@ app.get("/dev/bruh", async (req, res) => {
 });
 
 app.get("/dev/last-data-load", async (req, res) => {
-  res.json(lastDataLoad.format("YYYY-MM-DDTHH:mm:ssZ"));
+  // res.json(lastDataLoad.format("YYYY-MM-DDTHH:mm:ssZ"));
+  res.json(getLastDataLoad().format("YYYY-MM-DDTHH:mm:ssZ"));
 });
 
 app.get("/dev/history/stops", async (req, res) => {
@@ -3719,7 +3721,8 @@ app.get("/dev/reset-db", async (req, res) => {
   db.prepare(`DROP TABLE IF EXISTS skmTrojmiastoDepartures`).run();
   db.prepare(`DROP TABLE IF EXISTS polRegioDepartures`).run();
 
-  lastDataLoad = 0;
+  // lastDataLoad = 0;
+  stmtUpdateLastDataLoad.run("1970-01-01")
 
   console.log("Database has been reset successfully");
 
