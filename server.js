@@ -1000,7 +1000,7 @@ async function loadZTMGdanskZKMGdynia() {
   console.log("stopTimes")
 
   // Shapes
-  ztmGdansk.raw.shapes = await safeFetch("https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/da610d2a-7f54-44d1-b409-c1a7bdb4d3a4/download/shapes.json");
+  /*ztmGdansk.raw.shapes = await safeFetch("https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/da610d2a-7f54-44d1-b409-c1a7bdb4d3a4/download/shapes.json");
 
   if (ztmGdansk.raw.shapes[dateNow.format("YYYY-MM-DD")]) {
     db.prepare(`DELETE FROM ztmGdanskShapes`).run();
@@ -1020,7 +1020,7 @@ async function loadZTMGdanskZKMGdynia() {
       );
     }
   }
-  console.log("shapes")
+  console.log("shapes")*/
 
   // Loading from jsons
   /*ztmGdansk.raw.trips = JSON.parse(
@@ -1065,6 +1065,9 @@ async function loadZTMGdanskZKMGdynia() {
       if (element.departureTime.split("T")[0] === "1899-12-31") {
         theoreticalTime.add(1, "days");
       }
+      console.log(theoreticalTime)
+      console.log(theoreticalTime.format("YYYY-MM-DDTHH:mm:ssZ"))
+      console.log(date.format("Z"))
 
       const routeObj = ztmGdansk.raw.routes[
         date.format("YYYY-MM-DD")
@@ -2202,10 +2205,10 @@ async function loadData() {
     // stmtUpdateLastDataLoad.run(moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ"))
 
     prepareDB();
-    await loadStops();
-    await loadMZKWejherowo();
-    await loadSKMTrojmiasto();
-    await loadPolRegio();
+    // await loadStops();
+    // await loadMZKWejherowo();
+    // await loadSKMTrojmiasto();
+    // await loadPolRegio();
     await loadZTMGdanskZKMGdynia();
 
     // await loadZTMGdanskZKMGdyniaGTFS();
