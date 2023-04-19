@@ -1241,6 +1241,7 @@ async function loadZTMGdanskZKMGdynia() {
         });
       }
     }
+    ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")] = []
 
     if (dates[0] - date === 0) {
       // Clearing the tables
