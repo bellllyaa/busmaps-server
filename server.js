@@ -531,10 +531,30 @@ async function loadStops() {
     for (const stop of ztmGdanskLoad.raw.stops[key].stops) {
       if (stop.stopName === null) {
         // console.log(stop)
+        // if (`${stop.subName}`.length === 2) {
+        //   console.log(stop)
+        // }
+        /*if (stop.stopDesc === "Nowy Port Oliwska") {
+          ztmGdanskLoad.stops.push({
+            stopName: `${stop.stopDesc} ${stop.subName}`
+              .replaceAll(".", ". ")
+              .replace(/\s+/g, " ")
+              .trim(),
+            location: { lat: stop.stopLat, lng: stop.stopLon },
+            zoneName: stop.zoneName === null ? "Gdańsk" : stop.zoneName,
+            stopType: ztmGdanskGetStopType(stop),
+            providers: [
+              {
+                stopProvider: "ZTM Gdańsk",
+                stopId: Number(stop.stopId),
+              },
+            ],
+          });
+        }*/
       } else {
         if (
           ztmGdanskLoad.stops.find(
-            (stop1) => stop1.providers[0].stopId == stop.stopId
+            (stop1) => stop1.providers[0].stopId === stop.stopId || stop1.stopName === stop.stopName
           ) === undefined
         ) {
           ztmGdanskLoad.stops.push({
@@ -943,6 +963,7 @@ async function loadZTMGdanskZKMGdynia() {
     },
     stops: [],
   };
+  const zkmGdyniaAgencies = [5, 6, 7, 8, 9, 11, 17]
   const stops = [];
   for (const row of db.prepare(sqlStops).iterate()) {
     stops.push({
@@ -1000,7 +1021,7 @@ async function loadZTMGdanskZKMGdynia() {
   console.log("stopTimes")
 
   // Shapes
-  /*ztmGdansk.raw.shapes = await safeFetch("https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/da610d2a-7f54-44d1-b409-c1a7bdb4d3a4/download/shapes.json");
+  ztmGdansk.raw.shapes = await safeFetch("https://ckan.multimediagdansk.pl/dataset/c24aa637-3619-4dc2-a171-a23eec8f2172/resource/da610d2a-7f54-44d1-b409-c1a7bdb4d3a4/download/shapes.json");
 
   if (ztmGdansk.raw.shapes[dateNow.format("YYYY-MM-DD")]) {
     db.prepare(`DELETE FROM ztmGdanskShapes`).run();
@@ -1020,7 +1041,7 @@ async function loadZTMGdanskZKMGdynia() {
       );
     }
   }
-  console.log("shapes")*/
+  console.log("shapes")
 
   // Loading from jsons
   /*ztmGdansk.raw.trips = JSON.parse(
@@ -1050,9 +1071,11 @@ async function loadZTMGdanskZKMGdynia() {
 
     const ztmGdanskDepartures = {}
     const zkmGdyniaDepartures = {}
+    const headsigns = {}
     for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
       ztmGdanskDepartures[element.stopId] = [];
       zkmGdyniaDepartures[element.stopId] = [];
+      headsigns[element.routeId] = {};
     }
 
     for (const element of ztmGdansk.raw.stopTimes[date.format("YYYY-MM-DD")]) {
@@ -1065,9 +1088,6 @@ async function loadZTMGdanskZKMGdynia() {
       if (element.departureTime.split("T")[0] === "1899-12-31") {
         theoreticalTime.add(1, "days");
       }
-      console.log(theoreticalTime)
-      console.log(theoreticalTime.format("YYYY-MM-DDTHH:mm:ssZ"))
-      console.log(date.format("Z"))
 
       const routeObj = ztmGdansk.raw.routes[
         date.format("YYYY-MM-DD")
@@ -1081,25 +1101,28 @@ async function loadZTMGdanskZKMGdynia() {
       if (tripObj.type === "NON_PASSENGER") {
         continue;
       } else if (
-        tripObj.type === "UNKNOWN" ||
-        routeObj.routeType === "UNKNOWN"
+        zkmGdyniaAgencies.includes(element.agencyId)
+        // tripObj.type === "UNKNOWN" ||
+        // routeObj.routeType === "UNKNOWN"
       ) {
         // ZKM Gdynia
 
         // Headsign
 
         let headsign;
-        let directionNum = tripObj.directionId === 1 ? 1 : 0;
+        if (headsigns[element.routeId][element.tripId]) {
+          headsign = headsigns[element.routeId][element.tripId]
+        } else {
+          let directionNum = tripObj.directionId === 1 ? 1 : 0;
 
-        const lastStopInTrip = ztmGdansk.raw.stopTimes[
-          date.format("YYYY-MM-DD")
-        ].findLast(
-          (stopTime) =>
-            stopTime.busServiceName === element.busServiceName &&
-            stopTime.order === element.order
-        );
+          const lastStopInTrip = ztmGdansk.raw.stopTimes[
+            date.format("YYYY-MM-DD")
+          ].findLast(
+            (stopTime) =>
+              stopTime.busServiceName === element.busServiceName &&
+              stopTime.order === element.order
+          );
 
-        if (lastStopInTrip) {
           const lastStop = stops.find((stop) =>
             stop.providers.find(
               (provider) =>
@@ -1110,7 +1133,10 @@ async function loadZTMGdanskZKMGdynia() {
           if (lastStop) {
             headsign = lastStop.stopName;
           } else {
-            console.log("lastStop: " + lastStopInTrip.stopId)
+            console.log("lastStop ZKM Gdynia: " + lastStopInTrip.stopId + " agencyId: " + element.agencyId + " routeId: " + element.routeId + " tripId: " + element.tripId)
+            // console.log(element)
+            // console.log(lastStopInTrip)
+            // console.log(lastStop)
             if (tripObj.type === "MAIN") {
               headsign = routeObj.routeLongName.split("-")[directionNum].trim();
             } else if (tripObj.tripHeadsign.includes(">")) {
@@ -1122,19 +1148,8 @@ async function loadZTMGdanskZKMGdynia() {
                 .trim();
             }
           }
-        } else {
-          console.log("stopsInTrip.length === 0:")
-          console.log(element)
-          if (tripObj.type === "MAIN") {
-            headsign = routeObj.routeLongName.split("-")[directionNum].trim();
-          } else if (tripObj.tripHeadsign.includes(">")) {
-            headsign = tripObj.tripHeadsign.split(">")[directionNum].trim();
-          } else {
-            headsign = tripObj.tripHeadsign
-              .split("-")
-              [directionNum].split("(")[0]
-              .trim();
-          }
+          
+          headsigns[element.routeId][element.tripId] = headsign
         }
 
         // Putting everything together
@@ -1165,18 +1180,20 @@ async function loadZTMGdanskZKMGdynia() {
         // Headsign
 
         let headsign;
-        let directionNum = tripObj.directionId === 1 ? 1 : 0;
+        if (headsigns[element.routeId][element.tripId]) {
+          headsign = headsigns[element.routeId][element.tripId]
+        } else {
+          let directionNum = tripObj.directionId === 1 ? 1 : 0;
 
-        const lastStopInTrip = ztmGdansk.raw.stopTimes[
-          date.format("YYYY-MM-DD")
-        ].findLast(
-          (stopTime) =>
-            stopTime.busServiceName === element.busServiceName &&
-            stopTime.variantId === element.variantId &&
-            stopTime.order === element.order
-        );
+          const lastStopInTrip = ztmGdansk.raw.stopTimes[
+            date.format("YYYY-MM-DD")
+          ].findLast(
+            (stopTime) =>
+              stopTime.busServiceName === element.busServiceName &&
+              stopTime.variantId === element.variantId &&
+              stopTime.order === element.order
+          );
 
-        if (lastStopInTrip) {
           const lastStop = stops.find((stop) =>
             stop.providers.find(
               (provider) =>
@@ -1187,7 +1204,10 @@ async function loadZTMGdanskZKMGdynia() {
           if (lastStop) {
             headsign = lastStop.stopName;
           } else {
-            console.log("lastStop: " + lastStopInTrip.stopId)
+            console.log("lastStop ZTM Gdańsk: " + lastStopInTrip.stopId + " agencyId: " + element.agencyId + " routeId: " + element.routeId + " tripId: " + element.tripId)
+            // console.log(element)
+            // console.log(lastStopInTrip)
+            // console.log(lastStop)
             if (tripObj.type === "MAIN") {
               headsign = routeObj.routeLongName.split("-")[directionNum].trim();
             } else if (tripObj.tripHeadsign.includes(">")) {
@@ -1199,19 +1219,8 @@ async function loadZTMGdanskZKMGdynia() {
                 .trim();
             }
           }
-        } else {
-          console.log("stopsInTrip.length === 0:")
-          console.log(element)
-          if (tripObj.type === "MAIN") {
-            headsign = routeObj.routeLongName.split("-")[directionNum].trim();
-          } else if (tripObj.tripHeadsign.includes(">")) {
-            headsign = tripObj.tripHeadsign.split(">")[directionNum].trim();
-          } else {
-            headsign = tripObj.tripHeadsign
-              .split("-")
-              [directionNum].split("(")[0]
-              .trim();
-          }
+
+          headsigns[element.routeId][element.tripId] = headsign
         }
 
         // Putting everything together
@@ -1299,7 +1308,7 @@ async function loadZTMGdanskZKMGdynia() {
     }
 
     console.log(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`);
-    setTimeout(() => sendTelegramMessage(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`), 5000)
+    // setTimeout(() => sendTelegramMessage(`ZTM Gdansk departures for ${date.format("YYYY-MM-DD")} have been loaded`), 5000)
   }
 
   console.log("•");
@@ -2205,10 +2214,10 @@ async function loadData() {
     // stmtUpdateLastDataLoad.run(moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ"))
 
     prepareDB();
-    // await loadStops();
-    // await loadMZKWejherowo();
-    // await loadSKMTrojmiasto();
-    // await loadPolRegio();
+    await loadStops();
+    await loadMZKWejherowo();
+    await loadSKMTrojmiasto();
+    await loadPolRegio();
     await loadZTMGdanskZKMGdynia();
 
     // await loadZTMGdanskZKMGdyniaGTFS();
