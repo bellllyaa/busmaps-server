@@ -27,12 +27,13 @@ import {
 // import FormData from "form-data";
 import fs from "fs";
 import moment from "moment-timezone";
+import { exec } from "child_process";
 
 const PORT = process.env.PORT || 8080;
 
 const LOCAL_URL = "http://localhost:8080";
 const GOOGLE_PROXY_URL = "https://bypass-cors-server.ew.r.appspot.com";
-const AZURE_PROXY_URL = "http://busmaps-server.uksouth.cloudapp.azure.com";
+const AZURE_PROXY_URL = "https://busmaps-server.uksouth.cloudapp.azure.com";
 const A2HOSTING_PROXY_URL = "https://www.busmaps-server.a2hosted.com";
 const PROXY_URL = AZURE_PROXY_URL;
 
@@ -2386,8 +2387,8 @@ async function loadData() {
   }
 }
 
-setTimeout(() => loadData(), 1000)
-const interval = setInterval(() => loadData(), 120000);
+// setTimeout(() => loadData(), 1000)
+// const interval = setInterval(() => loadData(), 120000);
 
 setTimeout(() => {
   return
@@ -3714,6 +3715,22 @@ app.get("/dev/history/stops", async (req, res) => {
   res.json(history.stops);
 });
 
+app.get("/dev/git-pull", async (req, res) => {
+  // const childProcess = exec('cd .. && git pull && pm2 restart server');
+  exec('cd ./ && pwd', (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+  });
+  res.json("Completed successfully");
+})
+
 app.get("/dev/reset-db", async (req, res) => {
   db.prepare(`DROP TABLE IF EXISTS stops`).run();
   db.prepare(`DROP TABLE IF EXISTS ztmGdanskDepartures`).run();
@@ -3751,8 +3768,8 @@ app.get("/get-telebot-token", async (req, res) => {
 
 app.get("/", (req, res) => {
   res.json({
-    status: "Dayuuumn it works!",
-    date: moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ")
+    message: "hello traveller",
+    currentDate: moment().tz("Europe/Warsaw").format("YYYY-MM-DDTHH:mm:ssZ")
   })
 })
 
