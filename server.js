@@ -1061,7 +1061,7 @@ async function loadZTMGdanskZKMGdynia() {
         `${element.date}T${element.departureTime.split("T")[1]}${date.format(
           "Z"
         )}`
-      );
+      ).tz("Europe/Warsaw");
       if (element.departureTime.split("T")[0] === "1899-12-31") {
         theoreticalTime.add(1, "days");
       }
