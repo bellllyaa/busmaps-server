@@ -3716,8 +3716,7 @@ app.get("/dev/history/stops", async (req, res) => {
 });
 
 app.get("/dev/git-pull", async (req, res) => {
-  // const childProcess = exec('cd .. && git pull && pm2 restart server');
-  exec('cd ./ && pwd', (error, stdout, stderr) => {
+  exec('git pull && pm2 restart server', (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
       return;
