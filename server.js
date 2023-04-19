@@ -2387,8 +2387,8 @@ async function loadData() {
   }
 }
 
-// setTimeout(() => loadData(), 1000)
-// const interval = setInterval(() => loadData(), 120000);
+setTimeout(() => loadData(), 1000)
+const interval = setInterval(() => loadData(), 120000);
 
 setTimeout(() => {
   return
@@ -3719,13 +3719,16 @@ app.get("/dev/git-pull", async (req, res) => {
   exec('git pull && pm2 restart server', (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
+      sendTelegramMessage(`error: ${error.message}`);
       return;
     }
     if (stderr) {
       console.log(`stderr: ${stderr}`);
+      sendTelegramMessage(`stderr: ${stderr}`);
       return;
     }
     console.log(`stdout: ${stdout}`);
+    sendTelegramMessage(`stdout: ${stdout}`)
   });
   res.json("Completed successfully");
 })
