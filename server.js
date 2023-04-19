@@ -3714,21 +3714,18 @@ app.get("/dev/history/stops", async (req, res) => {
   // res.json(JSON.stringify(history.stops, null, 2))
   res.json(history.stops);
 });
-
+console.log("Yessirski")
 app.get("/dev/git-pull", async (req, res) => {
   exec('git pull && pm2 restart server', (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
-      sendTelegramMessage(`error: ${error.message}`);
       return;
     }
     if (stderr) {
       console.log(`stderr: ${stderr}`);
-      sendTelegramMessage(`stderr: ${stderr}`);
       return;
     }
     console.log(`stdout: ${stdout}`);
-    sendTelegramMessage(`stdout: ${stdout}`)
   });
   res.json("Completed successfully");
 })
