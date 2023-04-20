@@ -3714,7 +3714,7 @@ app.get("/dev/history/stops", async (req, res) => {
   // res.json(JSON.stringify(history.stops, null, 2))
   res.json(history.stops);
 });
-console.log("Yessirski")
+
 app.get("/dev/git-pull", async (req, res) => {
   exec('git pull && pm2 restart server', (error, stdout, stderr) => {
     if (error) {
@@ -3727,8 +3727,39 @@ app.get("/dev/git-pull", async (req, res) => {
     }
     console.log(`stdout: ${stdout}`);
   });
-  res.json("Completed successfully");
+  res.json("Executed successfully");
 })
+
+app.post("/dev/run-commands", async (req, res) => {
+  console.log(req.url);
+  console.log(req.get("origin"));
+
+  const currentRequest = req.body;
+
+  if (!currentRequest.commands) {
+    res.json("No commands provided")
+    return
+  }
+
+  exec(currentRequest.commands, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      res.json(`error: ${error.message}`)
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      res.json(`stderr: ${stderr}`)
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    res.json(`stdout: ${stdout}`)
+  });
+
+  // sendTelegramMessage(JSON.stringify(currentStop, null, 2));
+
+  // res.json({ status: "success" });
+});
 
 app.get("/dev/reset-db", async (req, res) => {
   db.prepare(`DROP TABLE IF EXISTS stops`).run();
