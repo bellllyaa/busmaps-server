@@ -3773,8 +3773,19 @@ app.post("/dev/run-sql", async (req, res) => {
   const stmt = db.prepare(currentRequest.stmt);
 
   if (currentRequest.method === "all") {
-    let a
-    res.json(a)
+    const data = stmt.all()
+    if (data) {
+      res.json(data)
+    } else {
+      res.json("undefined")
+    }
+  } else if (currentRequest.method === "get") {
+    const data = stmt.get()
+    if (data) {
+      res.json(data)
+    } else {
+      res.json("undefined")
+    }
   } else if (currentRequest.method === "run") {
     res.json(stmt.run())
   } else {
