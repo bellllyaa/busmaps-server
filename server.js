@@ -3731,6 +3731,7 @@ app.get("/dev/git-pull", async (req, res) => {
 })
 
 app.post("/dev/run-commands", async (req, res) => {
+
   console.log(req.url);
   console.log(req.get("origin"));
 
@@ -3755,10 +3756,31 @@ app.post("/dev/run-commands", async (req, res) => {
     console.log(`stdout: ${stdout}`);
     res.json(`stdout: ${stdout}`)
   });
+  
+});
 
-  // sendTelegramMessage(JSON.stringify(currentStop, null, 2));
+app.post("/dev/run-sql", async (req, res) => {
+  console.log(req.url);
+  console.log(req.get("origin"));
 
-  // res.json({ status: "success" });
+  const currentRequest = req.body;
+
+  if (!currentRequest.stmt || !currentRequest.method) {
+    res.json("No commands provided")
+    return
+  }
+
+  const stmt = db.prepare(currentRequest.stmt);
+
+  if (currentRequest.method === "all") {
+    let a
+    res.json(a)
+  } else if (currentRequest.method === "run") {
+    res.json(stmt.run())
+  } else {
+    res.json("Wrong method provided")
+  }
+
 });
 
 app.get("/dev/reset-db", async (req, res) => {
