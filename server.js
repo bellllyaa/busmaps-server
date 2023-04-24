@@ -2221,7 +2221,12 @@ async function loadData() {
     await loadMZKWejherowo();
     await loadSKMTrojmiasto();
     await loadPolRegio();
-    await loadZTMGdanskZKMGdynia();
+    try {
+      await loadZTMGdanskZKMGdynia();
+    } catch (err) {
+      console.log(err.message)
+      sendTelegramMessage(err.message)
+    }
 
     // await loadZTMGdanskZKMGdyniaGTFS();
     // await loadMPKWroclaw();
@@ -2389,6 +2394,7 @@ async function loadData() {
 
 setTimeout(() => loadData(), 1000)
 const interval = setInterval(() => loadData(), 120000);
+// stmtUpdateLastDataLoad.run("1970-01-01")
 
 setTimeout(() => {
   return
@@ -3614,23 +3620,28 @@ app.post("/gps-positions", async (req, res) => {
         )
         for (const element of data.vehicles) {
           console.log(element)
-          const {routeType, headsign, vehicleOrder, variantId} = stmt.get(element.vehicleService, element.tripId)
-          gpsPositions.push({
-            routeName: element.routeShortName,
-            routeType: routeType,
-            headsign: headsign,
-            provider: "ZTM Gdańsk",
-            position: {
-              lat: element.lat,
-              lng: element.lon
-            },
-            direction: element.direction,
-            speed: element.speed,
-            generated: element.generated,
-            vehicleServiceName: element.vehicleService,
-            vehicleOrder: vehicleOrder,
-            variantId: variantId
-          })
+          const data = stmt.get(element.vehicleService, element.tripId)
+          if (data) {
+            const {routeType, headsign, vehicleOrder, variantId} = data
+            gpsPositions.push({
+              routeName: element.routeShortName,
+              routeType: routeType,
+              headsign: headsign,
+              provider: "ZTM Gdańsk",
+              position: {
+                lat: element.lat,
+                lng: element.lon
+              },
+              direction: element.direction,
+              speed: element.speed,
+              generated: element.generated,
+              vehicleServiceName: element.vehicleService,
+              vehicleOrder: vehicleOrder,
+              variantId: variantId
+            })
+          } else {
+            console.log("Skipping")
+          }
         }
       }
     } catch (error) {
