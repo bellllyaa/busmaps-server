@@ -88,8 +88,8 @@ const configSKMTrojmiasto = {
   agencies: [
     {
       agency_id: "SKMTr",
-      url: "https://przyjazdy.pl/latest/skmt.zip",
-      // url: "https://www.skm.pkp.pl/gtfs-mi-kpd.zip",
+      // url: "https://przyjazdy.pl/latest/skmt.zip",
+      url: "https://www.skm.pkp.pl/gtfs-mi-kpd.zip",
     },
   ],
   verbose: false,
@@ -1489,6 +1489,7 @@ async function loadMZKWejherowo() {
       routes: []
     },
     serviceIds: {},
+    tripIds: {},
     departures: {},
   };
 
@@ -1541,7 +1542,7 @@ async function loadMZKWejherowo() {
   // ServiceIds
   for (const element of mzkWejherowo.raw.calendarDates) {
     for (const date of dates) {
-      if (element.date.toString() === date.format("YYYYMMDD")) {
+      if (element.date.toString() === date.format("YYYYMMDD") && element.exception_type !== 2) {
         mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].push(
           element.service_id
         );
@@ -1550,12 +1551,19 @@ async function loadMZKWejherowo() {
     }
   }
 
+  // TripIds
+  for (const date of dates) {
+    for (const element of mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")]) {
+      for (const element of mzkWejherowo.raw.trips) {}
+    }
+  }
+
   // Scheduled departures
   for (const element of mzkWejherowo.raw.stopTimes) {
     for (const date of dates) {
       if (
         mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].find(
-          (serviceId) => serviceId === element.trip_id
+          (serviceId) => serviceId === element.trip_id.split("_")[0]
         ) !== undefined
       ) {
         mzkWejherowo.departures[date.format("YYYY-MM-DD")][element.stop_id] =
@@ -1591,7 +1599,7 @@ async function loadMZKWejherowo() {
     for (const date of dates) {
       if (
         mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].find(
-          (serviceId) => serviceId === element.trip_id
+          (serviceId) => serviceId === element.trip_id.split("_")[0]
         ) !== undefined
       ) {
         mzkWejherowo.departures[date.format("YYYY-MM-DD")][
@@ -1633,7 +1641,7 @@ async function loadMZKWejherowo() {
           trip.headsign,
           trip.provider,
           Number(trip.routeId),
-          Number(trip.tripId),
+          trip.tripId,
           trip.status,
           trip.theoreticalTime,
           trip.estimatedTime,
