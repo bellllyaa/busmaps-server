@@ -2228,7 +2228,7 @@ async function loadData() {
     await loadStops();
     await loadMZKWejherowo();
     await loadSKMTrojmiasto();
-    await loadPolRegio();
+    //await loadPolRegio();
     try {
       await loadZTMGdanskZKMGdynia();
     } catch (err) {
