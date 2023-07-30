@@ -38,17 +38,17 @@ const A2HOSTING_PROXY_URL = "https://www.busmaps-server.a2hosted.com";
 const PROXY_URL = AZURE_PROXY_URL;
 
 let tmp;
-if (process.env.NODE_ENV === "production") {
+/*if (process.env.NODE_ENV === "production") {
   tmp = "/home/busmapss/tmp";
   // applicationURL = "/server";
-} else if (process.env.USER === "belllyaa") {
+} else */if (process.env.USER === "belllyaa") {
   tmp = process.cwd();
-} else if (process.env.USER === "azureuser") {
-  tmp = "/home/azureuser/tmp"
+} else if (process.env.USER === "ubuntu") {
+  tmp = "/home/ubuntu/tmp"
 } else {
   // tmp = "/dev/sdb";
   // tmp = "/mnt/temp";
-  tmp = "/home/azureuser/tmp"
+  tmp = "/home/ubuntu/tmp"
 }
 console.log(tmp);
 
@@ -2228,7 +2228,12 @@ async function loadData() {
     await loadStops();
     await loadMZKWejherowo();
     await loadSKMTrojmiasto();
-    //await loadPolRegio();
+    // try {
+    //   await loadPolRegio();
+    // } catch (err) {
+    //   console.log(err.message)
+    //   sendTelegramMessage(err.message)
+    // }
     try {
       await loadZTMGdanskZKMGdynia();
     } catch (err) {
