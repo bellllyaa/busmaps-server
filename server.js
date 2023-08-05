@@ -461,6 +461,7 @@ async function loadStops() {
     closeDb(dbMZKWejherowo);
   } catch (err) {
     console.log(err.message);
+    console.log(err);
     sendTelegramMessage(err.message);
   }
 
@@ -3816,6 +3817,15 @@ app.post("/dev/run-sql", async (req, res) => {
     res.json("Wrong method provided")
   }
 
+});
+
+app.get("/dev/reload-data", async (req, res) => {
+  
+  stmtUpdateLastDataLoad.run("1970-01-01")
+
+  console.log("Database has been reloaded successfully");
+
+  res.json({ status: "success" });
 });
 
 app.get("/dev/reset-db", async (req, res) => {
