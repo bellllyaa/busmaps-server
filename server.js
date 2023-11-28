@@ -1060,11 +1060,11 @@ async function loadZTMGdanskZKMGdynia() {
     fs.readFileSync("../jsons/ZTMGdansk/stopTimes.json", "utf-8")
   );*/
 
-  // Saving jsons
-  // saveObjToFile(ztmGdansk.raw.routes, "../jsons/ZTMGdansk/routes.json")
-  // saveObjToFile(ztmGdansk.raw.trips, "../jsons/ZTMGdansk/trips.json")
-  // saveObjToFile(ztmGdansk.raw.stopTimesLinks, "../jsons/ZTMGdansk/stopTimesLinks.json")
-  // saveObjToFile(ztmGdansk.raw.stopTimes, "../jsons/ZTMGdansk/stopTimes.json")
+  // Saving jsons !!
+  // saveObjToFile(ztmGdansk.raw.routes, "data/jsons/ZTMGdansk/routes.json")
+  // saveObjToFile(ztmGdansk.raw.trips, "data/jsons/ZTMGdansk/trips.json")
+  // saveObjToFile(ztmGdansk.raw.stopTimesLinks, "data/jsons/ZTMGdansk/stopTimesLinks.json")
+  // saveObjToFile(ztmGdansk.raw.stopTimes, "data/jsons/ZTMGdansk/stopTimes.json")
   // saveObjToFile(ztmGdansk.raw.stopsInTrip, "../jsons/ZTMGdansk/stopsInTrip.json")
 
   // Processing departures
@@ -1257,7 +1257,7 @@ async function loadZTMGdanskZKMGdynia() {
     console.log("Sorting and saving to db...");
 
     // ZKM Gdynia
-    for (const [key, value] of Object.entries(zkmGdyniaDepartures)) {
+    /*for (const [key, value] of Object.entries(zkmGdyniaDepartures)) {
       zkmGdyniaDepartures[key].sort(
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
@@ -1281,7 +1281,7 @@ async function loadZTMGdanskZKMGdynia() {
           trip.vehicleOrder
         );
       }
-    }
+    }*/
 
     // ZTM Gdańsk
     for (const [key, value] of Object.entries(ztmGdanskDepartures)) {
@@ -1316,9 +1316,8 @@ async function loadZTMGdanskZKMGdynia() {
   }
 
   console.log("•");
-  console.log("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
-  setTimeout(() => sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded"), 5000)
-  // saveObjToFile(ztmGdansk.departures, "../jsons/Output/ztmGdanskDepartures.json");
+  console.log("ZTM Gdańsk departures have been loaded");
+  setTimeout(() => sendTelegramMessage("ZTM Gdańsk departures have been loaded"), 1000)
 }
 
 async function loadZKMGdynia() {
@@ -1362,13 +1361,16 @@ async function loadZKMGdynia() {
     await fetch("http://api.zdiz.gdynia.pl/pt/calendar_dates")
   ).json();
 
-  // Saving jsons
-  // saveObjToFile(zkmGdynia.raw.routes, "../jsons/ZKMGdynia/routes.json")
-  // saveObjToFile(zkmGdynia.raw.trips, "../jsons/ZKMGdynia/trips.json")
-  // saveObjToFile(zkmGdynia.raw.stopTimes, "../jsons/ZKMGdynia/stopTimes.json")
-  // saveObjToFile(zkmGdynia.raw.calendarDates, "../jsons/ZKMGdynia/calendarDates.json")
+  // Saving jsons !!
+  // saveObjToFile(zkmGdynia.raw.routes, "data/jsons/ZKMGdynia/routes.json")
+  // saveObjToFile(zkmGdynia.raw.trips, "data/jsons/ZKMGdynia/trips.json")
+  // saveObjToFile(zkmGdynia.raw.stopTimes, "data/jsons/ZKMGdynia/stopTimes.json")
+  // saveObjToFile(zkmGdynia.raw.calendarDates, "data/jsons/ZKMGdynia/calendarDates.json")
+  // return
 
   // Processing departures
+
+  console.log("Processing ZKM Gdynia data...")
 
   // ServiceIds
   for (const element of zkmGdynia.raw.calendarDates) {
@@ -1467,8 +1469,7 @@ async function loadZKMGdynia() {
 
   console.log("•");
   console.log("ZKM Gdynia departures have been loaded");
-  // sendTelegramMessage("ZKM Gdynia departures have been loaded")
-  // saveObjToFile(zkmGdynia.departures, "../jsons/Output/zkmGdyniaDepartures.json");
+  setTimeout(() => sendTelegramMessage("ZKM Gdynia departures have been loaded"), 1000);
 }
 
 async function loadMZKWejherowo() {
@@ -2245,7 +2246,7 @@ async function loadData() {
     // await loadZTMGdanskZKMGdyniaGTFS();
     // await loadMPKWroclaw();
 
-    // await loadZKMGdynia();
+    await loadZKMGdynia();
 
     // Setting lastDataLoad
     // lastDataLoad = moment()
@@ -2932,11 +2933,18 @@ app.post("/get-departures", async (req, res) => {
           stopId: provider.stopId,
         };
         try {
+          // const data = await fetch(
+          //   `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
+          // )
+          // const dataJSON = await data.json()
+          // if (dataJSON.departures) {
+          //   zkmGdyniaDeparturesRealtime = dataJSON
+          // }
           const data = await fetch(
-            `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
+            `http://api.zdiz.gdynia.pl/pt/delays?stopId=${provider.stopId}`
           )
           const dataJSON = await data.json()
-          if (dataJSON.departures) {
+          if (dataJSON.delay) {
             zkmGdyniaDeparturesRealtime = dataJSON
           }
         } catch (error) {
@@ -3050,8 +3058,9 @@ app.post("/get-departures", async (req, res) => {
       }
     }
 
+    // new
     if (zkmGdyniaDeparturesRealtime) {
-      for (const element of zkmGdyniaDeparturesRealtime.departures) {
+      /*for (const element of zkmGdyniaDeparturesRealtime.departures) {
         if (element.status === "REALTIME") {
           const theoreticalTime = moment(element.theoreticalTime).tz(
             "Europe/Warsaw"
@@ -3059,6 +3068,101 @@ app.post("/get-departures", async (req, res) => {
           const estimatedTime = moment(element.estimatedTime).tz(
             "Europe/Warsaw"
           );
+          // element.estimatedTime = moment(element.estimatedTime).tz("Europe/Warsaw");
+          // const estimatedTime =
+          //   element.estimatedTime.second() ||
+          //   element.estimatedTime.millisecond()
+          //     ? element.estimatedTime.add(1, "minute").startOf("minute")
+          //     : element.estimatedTime.startOf("minute");
+
+          // if (!(zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")] && zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId])) {
+          //   continue
+          // }
+          if (
+            !db
+              .prepare(
+                `SELECT RouteName FROM zkmGdyniaDepartures
+                WHERE TheoreticalTime LIKE '%${theoreticalTime.format(
+                  "YYYY-MM-DD"
+                )}%'
+                AND StopId = ${currentStop.zkmGdynia.stopId}`
+              )
+              .get()
+          ) {
+            continue;
+          }
+          if (
+            !db
+              .prepare(
+                `SELECT RouteName FROM zkmGdyniaDepartures
+                WHERE TheoreticalTime = '${theoreticalTime.format(
+                  "YYYY-MM-DDTHH:mm:ssZ"
+                )}'
+                AND StopId = ${currentStop.zkmGdynia.stopId}`
+              )
+              .get()
+          ) {
+            sendTelegramMessage("Failed to update estimatedTime!");
+            sendTelegramMessage(JSON.stringify(element, null, 2));
+            continue;
+          }
+
+          db.prepare(
+            `UPDATE zkmGdyniaDepartures
+            SET Status = 'REALTIME',
+                EstimatedTime = '${estimatedTime.format(
+                  "YYYY-MM-DDTHH:mm:ssZ"
+                )}'
+            WHERE
+                TheoreticalTime = '${theoreticalTime.format(
+                  "YYYY-MM-DDTHH:mm:ssZ"
+                )}'
+            AND StopId = ${currentStop.zkmGdynia.stopId}
+            AND TripId = ${element.tripId}
+            AND RouteId = ${element.routeId}`
+          ).run();
+        }
+      }*/
+    }
+
+    // old
+    console.log("zkmGdyniaDeparturesRealtime")
+    if (zkmGdyniaDeparturesRealtime) {
+      for (const element of zkmGdyniaDeparturesRealtime.delay) {
+        if (element.status === "REALTIME") {
+          // Current date | .format('YYYY-MM-DD HH:mm:ss Z'
+          
+          // theoreticalTime
+          let theoreticalTime = moment()
+            .tz("Europe/Warsaw")
+            .set({
+              hour: parseInt(element.theoreticalTime.split(':')[0]),
+              minute: parseInt(element.theoreticalTime.split(':')[1]),
+              second: 0
+            })
+          if (moment() - theoreticalTime > 7200000) {
+            theoreticalTime = theoreticalTime.add(1, "days")
+          } else if (moment() - theoreticalTime < -7200000) {
+            theoreticalTime = theoreticalTime.add(-1, "days")
+          }
+          console.log("theoreticalTime: ", theoreticalTime)
+
+          // estimatedTime
+          let estimatedTime = moment()
+            .tz("Europe/Warsaw")
+            .set({
+              hour: parseInt(element.estimatedTime.split(':')[0]),
+              minute: parseInt(element.estimatedTime.split(':')[1]),
+              second: 0
+            })
+          if (moment() - estimatedTime > 7200000) {
+            estimatedTime = estimatedTime.add(1, "days")
+          } else if (moment() - estimatedTime < -7200000) {
+            estimatedTime = estimatedTime.add(-1, "days")
+          }
+          console.log("estimatedTime: ", estimatedTime)
+          console.log("now: ", moment())
+        
           // element.estimatedTime = moment(element.estimatedTime).tz("Europe/Warsaw");
           // const estimatedTime =
           //   element.estimatedTime.second() ||
@@ -3117,6 +3221,17 @@ app.post("/get-departures", async (req, res) => {
           zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId][comparedTripIndex].estimatedTime =
             `${estimatedTime.format("YYYY-MM-DD")}T${estimatedTime.format("HH:mm:ss")}${estimatedTime.format("Z")}`;*/
 
+          /*console.log(db.prepare(
+            `SELECT *
+            FROM zkmGdyniaDepartures
+            WHERE
+              TheoreticalTime = '${theoreticalTime.format(
+                "YYYY-MM-DDTHH:mm:ssZ"
+              )}'
+            AND StopId = ${currentStop.zkmGdynia.stopId}
+            AND RouteId = ${element.routeId}`
+          ).get())*/
+
           db.prepare(
             `UPDATE zkmGdyniaDepartures
             SET Status = 'REALTIME',
@@ -3128,7 +3243,6 @@ app.post("/get-departures", async (req, res) => {
                   "YYYY-MM-DDTHH:mm:ssZ"
                 )}'
             AND StopId = ${currentStop.zkmGdynia.stopId}
-            AND TripId = ${element.tripId}
             AND RouteId = ${element.routeId}`
           ).run();
         }
@@ -3378,6 +3492,7 @@ app.post("/get-stops-in-trip", async (req, res) => {
 
   } else if (currentTrip.provider === "ZKM Gdynia") {
 
+    // old
     const stmt = db.prepare(
       `SELECT StopId as stopId,
         RouteName as routeName,
@@ -3421,6 +3536,51 @@ app.post("/get-stops-in-trip", async (req, res) => {
     stopsAll.push(
       ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
     );
+
+    // new
+    /*const stmt = db.prepare(
+      `SELECT StopId as stopId,
+        RouteName as routeName,
+        RouteType as routeType,
+        Headsign as headsign,
+        Provider as provider,
+        RouteId as routeId,
+        TripId as tripId,
+        Status as status,
+        TheoreticalTime as theoreticalTime,
+        EstimatedTime as estimatedTime,
+        StopSequence as stopSequence,
+        VehicleServiceName as vehicleServiceName,
+        VehicleOrder as vehicleOrder
+      FROM zkmGdyniaDepartures
+      WHERE VehicleServiceName = ?
+      AND VehicleOrder = ?
+      ORDER BY StopSequence`
+    );
+
+    if (currentTrip.status === "REALTIME") {
+      const stopsInTrip = stmt.all(
+        currentTrip.vehicleServiceName,
+        currentTrip.vehicleOrder
+      );
+
+      for (const element of stopsInTrip) {
+        updateEstimatedTime(
+          {
+            provider: element.provider,
+            stopId: element.stopId
+          },
+          {
+            theoreticalTime: element.theoreticalTime,
+            vehicleServiceName: element.vehicleServiceName
+          }
+        )
+      }
+    }
+    
+    stopsAll.push(
+      ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
+    );*/
   } else if (currentTrip.provider === "MZK Wejherowo") {
     stopsAll.push(
       ...db
@@ -3513,6 +3673,7 @@ app.post("/get-stops-in-trip", async (req, res) => {
     ).get().stopName
   })
 
+  console.log(currentTrip.stops);
   res.json(currentTrip.stops);
 });
 
