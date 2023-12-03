@@ -63,6 +63,16 @@ const configZTMGdansk = {
   sqlitePath: tmp + "/db/ztmGdansk.db"
 };
 
+const configZKMGdynia = {
+  agencies: [
+    {
+      url: "http://api.zdiz.gdynia.pl/pt/gtfs.zip",
+    },
+  ],
+  verbose: false,
+  sqlitePath: tmp + "/db/zkmGdynia.db"
+};
+
 const configMZKWejherowo = {
   agencies: [
     {
@@ -1257,7 +1267,7 @@ async function loadZTMGdanskZKMGdynia() {
     console.log("Sorting and saving to db...");
 
     // ZKM Gdynia
-    /*for (const [key, value] of Object.entries(zkmGdyniaDepartures)) {
+    for (const [key, value] of Object.entries(zkmGdyniaDepartures)) {
       zkmGdyniaDepartures[key].sort(
         (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
       );
@@ -1281,7 +1291,7 @@ async function loadZTMGdanskZKMGdynia() {
           trip.vehicleOrder
         );
       }
-    }*/
+    }
 
     // ZTM Gdańsk
     for (const [key, value] of Object.entries(ztmGdanskDepartures)) {
@@ -1470,6 +1480,194 @@ async function loadZKMGdynia() {
   console.log("•");
   console.log("ZKM Gdynia departures have been loaded");
   setTimeout(() => sendTelegramMessage("ZKM Gdynia departures have been loaded"), 1000);
+}
+
+async function loadZKMGdyniaGTFS() {
+  console.log("•");
+  console.log("Loading ZKM Gdynia...");
+
+  // Current date | .format('YYYY-MM-DD HH:mm:ss Z')
+  const dateNow = moment().tz("Europe/Warsaw");
+  const dateNextDay = moment().tz("Europe/Warsaw").add(1, "days");
+  const dates = [dateNow, dateNextDay];
+
+  // Object
+  const zkmGdynia = {
+    raw: {
+      stops: [],
+      calendarDates: [],
+      stopTimes: [],
+      trips: [],
+      routes: []
+    },
+    serviceIds: {},
+    tripIds: {},
+    departures: {},
+  };
+
+  for (const date of dates) {
+    zkmGdynia.departures[date.format("YYYY-MM-DD")] = {};
+    zkmGdynia.serviceIds[date.format("YYYY-MM-DD")] = [];
+  }
+
+  // Loading data
+  try {
+    await importGtfs(configZKMGdynia);
+    const dbZKMGdynia = openDb(configZKMGdynia);
+    zkmGdynia.raw.routes = getRoutes({}, [], [], { db: dbZKMGdynia });
+    zkmGdynia.raw.trips = getTrips({}, [], [], { db: dbZKMGdynia });
+    zkmGdynia.raw.calendarDates = getCalendarDates({}, [], [], {
+      db: dbZKMGdynia,
+    });
+    zkmGdynia.raw.stopTimes = getStoptimes({}, [], [], {
+      db: dbZKMGdynia,
+    });
+    closeDb(dbZKMGdynia);
+  } catch (err) {
+    console.log(err.message);
+    sendTelegramMessage(err.message);
+    return;
+  }
+
+  // Loading from jsons
+  /*skmTrojmiasto.raw.routes = JSON.parse(
+    fs.readFileSync("../jsons/SKMTrojmiasto/routes.json", "utf-8")
+  );
+  skmTrojmiasto.raw.trips = JSON.parse(
+    fs.readFileSync("../jsons/SKMTrojmiasto/trips.json", "utf-8")
+  );
+  skmTrojmiasto.raw.calendarDates = JSON.parse(
+    fs.readFileSync("../jsons/SKMTrojmiasto/calendarDates.json", "utf-8")
+  );
+  skmTrojmiasto.raw.stopTimes = JSON.parse(
+    fs.readFileSync("../jsons/SKMTrojmiasto/stopTimes.json", "utf-8")
+  );*/
+
+  // Saving jsons
+  // saveObjToFile(skmTrojmiasto.raw.routes, "../jsons/SKMTrojmiasto/routes.json")
+  // saveObjToFile(skmTrojmiasto.raw.trips, "../jsons/SKMTrojmiasto/trips.json")
+  // saveObjToFile(skmTrojmiasto.raw.calendarDates, "../jsons/SKMTrojmiasto/calendarDates.json")
+  // saveObjToFile(skmTrojmiasto.raw.stopTimes, "../jsons/SKMTrojmiasto/stopTimes.json")
+
+  // Processing the data
+
+  // ServiceIds
+  for (const element of zkmGdynia.raw.calendarDates) {
+    for (const date of dates) {
+      if (element.date.toString() === date.format("YYYYMMDD") && element.exception_type !== 2) {
+        zkmGdynia.serviceIds[date.format("YYYY-MM-DD")].push(
+          element.service_id
+        );
+        break;
+      }
+    }
+  }
+
+  // TripIds
+  for (const date of dates) {
+    for (const element of mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")]) {
+      for (const element of mzkWejherowo.raw.trips) {}
+    }
+  }
+
+  // Scheduled departures
+  for (const element of mzkWejherowo.raw.stopTimes) {
+    for (const date of dates) {
+      if (
+        mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].find(
+          (serviceId) => serviceId === element.trip_id.split("_")[0]
+        ) !== undefined
+      ) {
+        mzkWejherowo.departures[date.format("YYYY-MM-DD")][element.stop_id] =
+          [];
+      }
+    }
+  }
+
+  // Clearing the table
+  db.prepare(`DELETE FROM mzkWejherowoDepartures`).run();
+
+  for (const element of mzkWejherowo.raw.stopTimes) {
+    if (element.departure_time.slice(0, 2) == "24") {
+      element.departure_time = "00" + element.departure_time.slice(2);
+    } else if (element.departure_time.slice(0, 2) == "25") {
+      element.departure_time = "01" + element.departure_time.slice(2);
+    } else if (element.departure_time.slice(0, 2) == "26") {
+      element.departure_time = "02" + element.departure_time.slice(2);
+    } else if (element.departure_time.slice(0, 2) == "27") {
+      element.departure_time = "03" + element.departure_time.slice(2);
+    }
+
+    element.routeId = mzkWejherowo.raw.trips.find(
+      (t) => t.trip_id === element.trip_id
+    )?.route_id;
+    element.routeShortName = mzkWejherowo.raw.routes.find(
+      (r) => r.route_id === element.routeId
+    )?.route_short_name;
+    element.headsign = mzkWejherowo.raw.trips.find(
+      (t) => t.trip_id === element.trip_id
+    )?.trip_headsign;
+
+    for (const date of dates) {
+      if (
+        mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].find(
+          (serviceId) => serviceId === element.trip_id.split("_")[0]
+        ) !== undefined
+      ) {
+        mzkWejherowo.departures[date.format("YYYY-MM-DD")][
+          element.stop_id
+        ].push({
+          routeName: element.routeShortName,
+          routeType: "bus",
+          provider: "MZK Wejherowo",
+          routeId: Number(element.routeId),
+          tripId: element.trip_id,
+          status: "SCHEDULED",
+          theoreticalTime: `${date.format("YYYY-MM-DD")}T${
+            element.departure_time
+          }${date.format("Z")}`,
+          estimatedTime: null,
+          headsign: element.headsign,
+          stopSequence: element.stop_sequence,
+        });
+      }
+    }
+  }
+  for (const date of dates) {
+    for (const [key, value] of Object.entries(
+      mzkWejherowo.departures[date.format("YYYY-MM-DD")]
+    )) {
+      mzkWejherowo.departures[date.format("YYYY-MM-DD")][key].sort(
+        (a, b) => moment(a.theoreticalTime) - moment(b.theoreticalTime)
+      );
+      for (const trip of mzkWejherowo.departures[date.format("YYYY-MM-DD")][
+        key
+      ]) {
+        db.prepare(
+          `INSERT INTO mzkWejherowoDepartures (StopId, RouteName, RouteType, Headsign, Provider, RouteId, TripId, Status, TheoreticalTime, EstimatedTime, StopSequence)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          Number(key),
+          trip.routeName,
+          trip.routeType,
+          trip.headsign,
+          trip.provider,
+          Number(trip.routeId),
+          trip.tripId,
+          trip.status,
+          trip.theoreticalTime,
+          trip.estimatedTime,
+          trip.stopSequence
+        );
+      }
+    }
+  }
+
+  console.log("•");
+  console.log("MZK Wejherowo departures have been loaded");
+  sendTelegramMessage("MZK Wejherowo departures have been loaded");
+  // saveObjToFile(skmTrojmiasto.departures, "jsons/Output/skmTrojmiastoDepartures.json");
+  // sendTelegramMessage("SKM Trojmiasto departures have been loaded")
 }
 
 async function loadMZKWejherowo() {
@@ -2236,6 +2434,7 @@ async function loadData() {
     //   console.log(err.message)
     //   sendTelegramMessage(err.message)
     // }
+
     try {
       await loadZTMGdanskZKMGdynia();
     } catch (err) {
@@ -2246,7 +2445,8 @@ async function loadData() {
     // await loadZTMGdanskZKMGdyniaGTFS();
     // await loadMPKWroclaw();
 
-    await loadZKMGdynia();
+    // await loadZKMGdyniaGTFS();
+    // await loadZKMGdynia();
 
     // Setting lastDataLoad
     // lastDataLoad = moment()
@@ -2933,20 +3133,20 @@ app.post("/get-departures", async (req, res) => {
           stopId: provider.stopId,
         };
         try {
-          // const data = await fetch(
-          //   `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
-          // )
-          // const dataJSON = await data.json()
-          // if (dataJSON.departures) {
-          //   zkmGdyniaDeparturesRealtime = dataJSON
-          // }
           const data = await fetch(
+            `http://ckan2.multimediagdansk.pl/departures?stopId=${provider.stopId}`
+          )
+          const dataJSON = await data.json()
+          if (dataJSON.departures) {
+            zkmGdyniaDeparturesRealtime = dataJSON
+          }
+          /*const data = await fetch(
             `http://api.zdiz.gdynia.pl/pt/delays?stopId=${provider.stopId}`
           )
           const dataJSON = await data.json()
           if (dataJSON.delay) {
             zkmGdyniaDeparturesRealtime = dataJSON
-          }
+          }*/
         } catch (error) {
           console.log(error.message)
           sendTelegramMessage(error.message)
@@ -3060,7 +3260,7 @@ app.post("/get-departures", async (req, res) => {
 
     // new
     if (zkmGdyniaDeparturesRealtime) {
-      /*for (const element of zkmGdyniaDeparturesRealtime.departures) {
+      for (const element of zkmGdyniaDeparturesRealtime.departures) {
         if (element.status === "REALTIME") {
           const theoreticalTime = moment(element.theoreticalTime).tz(
             "Europe/Warsaw"
@@ -3122,11 +3322,11 @@ app.post("/get-departures", async (req, res) => {
             AND RouteId = ${element.routeId}`
           ).run();
         }
-      }*/
+      }
     }
 
     // old
-    console.log("zkmGdyniaDeparturesRealtime")
+    /*console.log("zkmGdyniaDeparturesRealtime")
     if (zkmGdyniaDeparturesRealtime) {
       for (const element of zkmGdyniaDeparturesRealtime.delay) {
         if (element.status === "REALTIME") {
@@ -3202,36 +3402,6 @@ app.post("/get-departures", async (req, res) => {
             continue;
           }
 
-          /*const comparedTrip = zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId].find(
-            (t) =>
-              moment(t.theoreticalTime).tz("Europe/Warsaw").format("HH:mm:ss") ===
-                theoreticalTime.format("HH:mm:ss") &&
-              t.routeId === element.routeId
-          );
-          if (!comparedTrip) {
-            console.log("comparedTrip is undefined for:")
-            console.log(element)
-            continue;
-          }
-          
-          const comparedTripIndex =
-            zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId].indexOf(comparedTrip);
-
-          zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId][comparedTripIndex].status = "REALTIME";
-          zkmGdynia.departures[theoreticalTime.format("YYYY-MM-DD")][currentStop.zkmGdynia.stopId][comparedTripIndex].estimatedTime =
-            `${estimatedTime.format("YYYY-MM-DD")}T${estimatedTime.format("HH:mm:ss")}${estimatedTime.format("Z")}`;*/
-
-          /*console.log(db.prepare(
-            `SELECT *
-            FROM zkmGdyniaDepartures
-            WHERE
-              TheoreticalTime = '${theoreticalTime.format(
-                "YYYY-MM-DDTHH:mm:ssZ"
-              )}'
-            AND StopId = ${currentStop.zkmGdynia.stopId}
-            AND RouteId = ${element.routeId}`
-          ).get())*/
-
           db.prepare(
             `UPDATE zkmGdyniaDepartures
             SET Status = 'REALTIME',
@@ -3247,7 +3417,7 @@ app.post("/get-departures", async (req, res) => {
           ).run();
         }
       }
-    }
+    }*/
 
     // Combining data from all providers
     for (const date of dates) {
@@ -3493,51 +3663,6 @@ app.post("/get-stops-in-trip", async (req, res) => {
   } else if (currentTrip.provider === "ZKM Gdynia") {
 
     // old
-    const stmt = db.prepare(
-      `SELECT StopId as stopId,
-        RouteName as routeName,
-        RouteType as routeType,
-        Headsign as headsign,
-        Provider as provider,
-        RouteId as routeId,
-        TripId as tripId,
-        Status as status,
-        TheoreticalTime as theoreticalTime,
-        EstimatedTime as estimatedTime,
-        StopSequence as stopSequence,
-        VehicleServiceName as vehicleServiceName,
-        VehicleOrder as vehicleOrder
-      FROM zkmGdyniaDepartures
-      WHERE VehicleServiceName = ?
-      AND VehicleOrder = ?
-      ORDER BY StopSequence`
-    );
-
-    if (currentTrip.status === "REALTIME") {
-      const stopsInTrip = stmt.all(
-        currentTrip.vehicleServiceName,
-        currentTrip.vehicleOrder
-      );
-
-      for (const element of stopsInTrip) {
-        updateEstimatedTime(
-          {
-            provider: element.provider,
-            stopId: element.stopId
-          },
-          {
-            theoreticalTime: element.theoreticalTime,
-            vehicleServiceName: element.vehicleServiceName
-          }
-        )
-      }
-    }
-    
-    stopsAll.push(
-      ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
-    );
-
-    // new
     /*const stmt = db.prepare(
       `SELECT StopId as stopId,
         RouteName as routeName,
@@ -3581,6 +3706,52 @@ app.post("/get-stops-in-trip", async (req, res) => {
     stopsAll.push(
       ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
     );*/
+
+    // new
+    const stmt = db.prepare(
+      `SELECT StopId as stopId,
+        RouteName as routeName,
+        RouteType as routeType,
+        Headsign as headsign,
+        Provider as provider,
+        RouteId as routeId,
+        TripId as tripId,
+        Status as status,
+        TheoreticalTime as theoreticalTime,
+        EstimatedTime as estimatedTime,
+        StopSequence as stopSequence,
+        VehicleServiceName as vehicleServiceName,
+        VehicleOrder as vehicleOrder
+      FROM zkmGdyniaDepartures
+      WHERE VehicleServiceName = ?
+      AND VehicleOrder = ?
+      ORDER BY StopSequence`
+    );
+
+    if (currentTrip.status === "REALTIME") {
+      const stopsInTrip = stmt.all(
+        currentTrip.vehicleServiceName,
+        currentTrip.vehicleOrder
+      );
+
+      for (const element of stopsInTrip) {
+        updateEstimatedTime(
+          {
+            provider: element.provider,
+            stopId: element.stopId
+          },
+          {
+            theoreticalTime: element.theoreticalTime,
+            vehicleServiceName: element.vehicleServiceName
+          }
+        )
+      }
+    }
+    
+    stopsAll.push(
+      ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
+    );
+    
   } else if (currentTrip.provider === "MZK Wejherowo") {
     stopsAll.push(
       ...db
