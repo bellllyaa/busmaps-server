@@ -1698,9 +1698,17 @@ async function loadMZKWejherowo() {
     mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")] = [];
   }
 
+  try {
+    const res = await fetch(configMZKWejherowo.agencies[0].url);
+    console.log(res)
+  } catch (err) {
+    console.log(err.message);
+  }
+  return
+
   // Loading data
   try {
-    // await importGtfs(configMZKWejherowo);
+    await importGtfs(configMZKWejherowo);
     const dbMZKWejherowo = openDb(configMZKWejherowo);
     mzkWejherowo.raw.routes = getRoutes({}, [], [], { db: dbMZKWejherowo });
     mzkWejherowo.raw.trips = getTrips({}, [], [], { db: dbMZKWejherowo });
@@ -2608,6 +2616,7 @@ async function loadData() {
 }
 
 setTimeout(() => loadData(), 1000)
+setTimeout(() => loadMZKWejherowo(), 2000)
 const interval = setInterval(() => loadData(), 120000);
 // stmtUpdateLastDataLoad.run("1970-01-01")
 
@@ -3751,7 +3760,7 @@ app.post("/get-stops-in-trip", async (req, res) => {
     stopsAll.push(
       ...stmt.all(currentTrip.vehicleServiceName, currentTrip.vehicleOrder)
     );
-    
+
   } else if (currentTrip.provider === "MZK Wejherowo") {
     stopsAll.push(
       ...db
