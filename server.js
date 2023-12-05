@@ -1715,7 +1715,7 @@ async function loadMZKWejherowo() {
     console.log(err.message);
   }*/
 
-  try {
+  /*try {
     const url = configMZKWejherowo.agencies[0].url;
     const path = tmp + "/db/MZK.db";
 
@@ -1731,7 +1731,7 @@ async function loadMZKWejherowo() {
     console.log(err.message)
   }
 
-  return
+  return*/
 
   // Loading data
   try {
