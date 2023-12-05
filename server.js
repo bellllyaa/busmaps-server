@@ -29,6 +29,12 @@ import fs from "fs";
 import moment from "moment-timezone";
 import { exec } from "child_process";
 
+
+
+import axios from 'axios';
+
+
+
 const PORT = process.env.PORT || 8080;
 
 const LOCAL_URL = "http://localhost:8080";
@@ -199,6 +205,10 @@ function saveObjToFile(obj, filePath = "output.json") {
 
     console.log("JSON file has been saved.");
   });
+}
+
+async function downloadFile(fileUrl, outputLocationPath) {
+  
 }
 
 // Object.getOwnPropertyNames()
@@ -1326,8 +1336,8 @@ async function loadZTMGdanskZKMGdynia() {
   }
 
   console.log("•");
-  console.log("ZTM Gdańsk departures have been loaded");
-  setTimeout(() => sendTelegramMessage("ZTM Gdańsk departures have been loaded"), 1000)
+  console.log("ZTM Gdańsk and ZKM Gdynia departures have been loaded");
+  setTimeout(() => sendTelegramMessage("ZTM Gdańsk and ZKM Gdynia departures have been loaded"), 1000)
 }
 
 async function loadZKMGdynia() {
@@ -1698,12 +1708,29 @@ async function loadMZKWejherowo() {
     mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")] = [];
   }
 
-  try {
+  /*try {
     const res = await fetch(configMZKWejherowo.agencies[0].url);
     console.log(res)
   } catch (err) {
     console.log(err.message);
+  }*/
+
+  try {
+    const url = configMZKWejherowo.agencies[0].url;
+    const path = "db/MZK.db";
+
+    axios({
+      url,
+      method: 'GET',
+      responseType: 'stream'
+    }).then(response => {
+      response.data.pipe(fs.createWriteStream(path));
+    });
+    console.log("Loaded successfully")
+  } catch (err) {
+    console.log(err.message)
   }
+
   return
 
   // Loading data
