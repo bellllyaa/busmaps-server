@@ -1717,7 +1717,7 @@ async function loadMZKWejherowo() {
 
   try {
     const url = configMZKWejherowo.agencies[0].url;
-    const path = "db/MZK.db";
+    const path = tmp + "/db/MZK.db";
 
     axios({
       url,
