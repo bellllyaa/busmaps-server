@@ -120,7 +120,7 @@ const configPolRegio = {
     },
   ],
   verbose: false,
-  // sqlitePath: tmp + "/db/polRegio.db"
+  sqlitePath: tmp + "/db/polRegio.db"
 };
 
 const configPKPIntercity = {
@@ -1708,34 +1708,9 @@ async function loadMZKWejherowo() {
     mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")] = [];
   }
 
-  /*try {
-    const res = await fetch(configMZKWejherowo.agencies[0].url);
-    console.log(res)
-  } catch (err) {
-    console.log(err.message);
-  }*/
-
-  /*try {
-    const url = configMZKWejherowo.agencies[0].url;
-    const path = tmp + "/db/MZK.db";
-
-    axios({
-      url,
-      method: 'GET',
-      responseType: 'stream'
-    }).then(response => {
-      response.data.pipe(fs.createWriteStream(path));
-    });
-    console.log("Loaded successfully")
-  } catch (err) {
-    console.log(err.message)
-  }
-
-  return*/
-
   // Loading data
   try {
-    await importGtfs(configMZKWejherowo);
+    // await importGtfs(configMZKWejherowo);
     const dbMZKWejherowo = openDb(configMZKWejherowo);
     mzkWejherowo.raw.routes = getRoutes({}, [], [], { db: dbMZKWejherowo });
     mzkWejherowo.raw.trips = getTrips({}, [], [], { db: dbMZKWejherowo });
@@ -2293,7 +2268,7 @@ async function loadPolRegio() {
 
   // Loading data
   try {
-    await importGtfs(configPolRegio);
+    // await importGtfs(configPolRegio);
     const dbPolRegio = openDb(configPolRegio);
     polRegio.raw.routes = getRoutes({}, [], [], { db: dbPolRegio });
     polRegio.raw.trips = getTrips({}, [], [], { db: dbPolRegio });
@@ -2463,12 +2438,12 @@ async function loadData() {
     await loadStops();
     await loadMZKWejherowo();
     await loadSKMTrojmiasto();
-    // try {
-    //   await loadPolRegio();
-    // } catch (err) {
-    //   console.log(err.message)
-    //   sendTelegramMessage(err.message)
-    // }
+    try {
+      await loadPolRegio();
+    } catch (err) {
+      console.log(err.message)
+      sendTelegramMessage(err.message)
+    }
 
     try {
       await loadZTMGdanskZKMGdynia();
@@ -2643,7 +2618,7 @@ async function loadData() {
 }
 
 setTimeout(() => loadData(), 1000)
-setTimeout(() => loadMZKWejherowo(), 2000)
+// setTimeout(() => loadMZKWejherowo(), 2000)
 const interval = setInterval(() => loadData(), 120000);
 // stmtUpdateLastDataLoad.run("1970-01-01")
 
