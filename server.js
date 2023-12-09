@@ -19,6 +19,7 @@ import {
   getTrips,
   getRoutes,
   getCalendarDates,
+  getCalendars,
   getStoptimes,
   getShapesAsGeoJSON
 } from "gtfs";
@@ -1694,6 +1695,7 @@ async function loadMZKWejherowo() {
     raw: {
       stops: [],
       calendarDates: [],
+      calendars: [],
       stopTimes: [],
       trips: [],
       routes: []
@@ -1715,6 +1717,9 @@ async function loadMZKWejherowo() {
     mzkWejherowo.raw.routes = getRoutes({}, [], [], { db: dbMZKWejherowo });
     mzkWejherowo.raw.trips = getTrips({}, [], [], { db: dbMZKWejherowo });
     mzkWejherowo.raw.calendarDates = getCalendarDates({}, [], [], {
+      db: dbMZKWejherowo,
+    });
+    mzkWejherowo.raw.calendars = getCalendars({}, [], [], {
       db: dbMZKWejherowo,
     });
     mzkWejherowo.raw.stopTimes = getStoptimes({}, [], [], {
@@ -1744,20 +1749,86 @@ async function loadMZKWejherowo() {
   // Saving jsons
   // saveObjToFile(skmTrojmiasto.raw.routes, "../jsons/SKMTrojmiasto/routes.json")
   // saveObjToFile(skmTrojmiasto.raw.trips, "../jsons/SKMTrojmiasto/trips.json")
-  // saveObjToFile(skmTrojmiasto.raw.calendarDates, "../jsons/SKMTrojmiasto/calendarDates.json")
-  // saveObjToFile(skmTrojmiasto.raw.stopTimes, "../jsons/SKMTrojmiasto/stopTimes.json")
+  // saveObjToFile(mzkWejherowo.raw.stopTimes, "data/jsons/MZKWejherowo/stopTimes.json")
+  // saveObjToFile(mzkWejherowo.raw.calendars, "data/jsons/MZKWejherowo/calendars.json")
+  // saveObjToFile(mzkWejherowo.raw.calendarDates, "data/jsons/MZKWejherowo/calendarDates.json")
 
   // Processing the data
 
-  // ServiceIds
-  for (const element of mzkWejherowo.raw.calendarDates) {
-    for (const date of dates) {
-      if (element.date.toString() === date.format("YYYYMMDD") && element.exception_type !== 2) {
-        mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].push(
-          element.service_id
-        );
-        break;
+  // calendars
+  const formatString = "YYYYMMDD";
+  const timeZone = "Europe/Warsaw";
+  const allServiceIDs = {}
+  for (const element of mzkWejherowo.raw.calendars) {
+    // console.log(element)
+    const startDate = moment.tz(element.start_date, formatString, timeZone)
+    // console.log(startDate)
+    const endDate = moment.tz(element.end_date, formatString, timeZone).add({
+      hours: 23,
+      minutes: 59,
+      second: 59
+    })
+    // console.log(endDate)
+
+    const daysOfWeek = []
+    if (element.monday) {
+      daysOfWeek.push(1)
+    }
+    if (element.tuesday) {
+      daysOfWeek.push(2)
+    }
+    if (element.wednesday) {
+      daysOfWeek.push(3)
+    }
+    if (element.thursday) {
+      daysOfWeek.push(4)
+    }
+    if (element.friday) {
+      daysOfWeek.push(5)
+    }
+    if (element.saturday) {
+      daysOfWeek.push(6)
+    }
+    if (element.sunday) {
+      daysOfWeek.push(0)
+    }
+
+    while (startDate.isBefore(endDate)) {
+      if (daysOfWeek.includes(startDate.day())) {
+        if (allServiceIDs[startDate.format("YYYYMMDD")]) {
+          allServiceIDs[startDate.format("YYYYMMDD")].push(element.service_id)
+        } else {
+          allServiceIDs[startDate.format("YYYYMMDD")] = [element.service_id]
+        }
       }
+      startDate.add(1, "day");
+    }
+  }
+
+  // calendar_dates
+  for (const element of mzkWejherowo.raw.calendarDates) {
+    if (element.exception_type === 1) {
+      if (allServiceIDs[element.date] && !allServiceIDs[element.date].includes(element.service_id)) {
+        allServiceIDs[element.date].push(element.service_id)
+      } else {
+        allServiceIDs[element.date] = [element.service_id]
+      }
+    } else if (element.exception_type === 2) {
+      if (allServiceIDs[element.date] && allServiceIDs[element.date].includes(element.service_id)) {
+        const index = allServiceIDs[element.date].indexOf(element.service_id);
+        if (index > -1) {
+          allServiceIDs[element.date].splice(index, 1);
+        }
+      }
+    }
+  }
+
+  // ServiceIds
+  for (const date of dates) {
+    if (allServiceIDs[date.format("YYYYMMDD")]) {
+      mzkWejherowo.serviceIds[date.format("YYYY-MM-DD")].push(
+        ...allServiceIDs[date.format("YYYYMMDD")]
+      );
     }
   }
 
@@ -2616,6 +2687,9 @@ async function loadData() {
     // console.log("Nah");
   }
 }
+
+// Load data on start
+// stmtUpdateLastDataLoad.run("1970-01-01")
 
 setTimeout(() => loadData(), 1000)
 // setTimeout(() => loadMZKWejherowo(), 2000)
