@@ -1,6 +1,6 @@
 # Back-End of BusMaps.pl - A convenient and fast way to check the departures of public transport in Tricity in real time
 
-This project was bootstrapped with NodeJS.
+This project was bootstrapped with NodeJS and Nginx.
 
 ## Available Scripts
 
